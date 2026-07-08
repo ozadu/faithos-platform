@@ -1,0 +1,17 @@
+# syntax=docker/dockerfile:1.7
+FROM node:24-alpine
+
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+
+RUN corepack enable && corepack prepare pnpm@11.7.0 --activate
+
+WORKDIR /workspace
+
+COPY . .
+
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+
+EXPOSE 3000
+
+CMD ["pnpm", "--filter", "@faithos/web", "dev"]
