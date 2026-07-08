@@ -11,6 +11,9 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:up": "docker compose up --build",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "turbo run lint",
