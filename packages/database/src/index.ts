@@ -1,4 +1,17 @@
-export interface DatabaseClient {
-  connect(): Promise<void>;
-  disconnect(): Promise<void>;
-}
+export {
+  OrganizationStatus,
+  Prisma,
+  PrismaClient,
+  UserStatus,
+} from '@prisma/client';
+
+export type {
+  AuditLog,
+  Department,
+  Organization,
+  Permission,
+  Role,
+  RolePermission,
+  Session,
+  User,
+} from '@prisma/client';

@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  DISABLED
+}
+
+model Organization {
+  id        String             @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String             @unique
+  email     String
+  phone     String?
+  address   String?
+  country   String
+  timezone  String             @default("UTC")
+  status    OrganizationStatus @default(ACTIVE)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  departments Department[]
+  users       User[]
+  roles       Role[]
+  sessions    Session[]
+  auditLogs   AuditLog[]
+}
+
+model Department {
+  id               String    @id @default(uuid()) @db.Uuid
+  organizationId   String    @db.Uuid
+  name             String
+  description      String?
+  departmentHeadId String?   @db.Uuid
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  departmentHead User?        @relation("DepartmentHead", fields: [departmentHeadId], references: [id], onDelete: SetNull)
+  members        User[]       @relation("DepartmentMembers")
+
+  @@unique([organizationId, name])
+  @@index([organizationId, deletedAt])
+}
+
+model User {
+  id             String     @id @default(uuid()) @db.Uuid
+  organizationId String     @db.Uuid
+  departmentId   String?    @db.Uuid
+  roleId         String?    @db.Uuid
+  firstName      String
+  lastName       String
+  email          String     @unique
+  phone          String?
+  passwordHash   String
+  jobTitle       String?
+  status         UserStatus @default(ACTIVE)
+  lastLoginAt    DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  deletedAt      DateTime?
+
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  department        Department?  @relation("DepartmentMembers", fields: [departmentId], references: [id], onDelete: SetNull)
+  role              Role?        @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  headedDepartments Department[] @relation("DepartmentHead")
+  sessions          Session[]
+  auditLogs         AuditLog[]
+
+  @@index([organizationId, deletedAt])
+  @@index([organizationId, departmentId])
+  @@index([organizationId, roleId])
+}
+
+model Role {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String?  @db.Uuid
+  name           String
+  description    String?
+  isSystem       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization    Organization?    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  users           User[]
+  rolePermissions RolePermission[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId, isSystem])
+}
+
+model Permission {
+  id          String  @id @default(uuid()) @db.Uuid
+  code        String  @unique
+  displayName String
+  module      String
+  description String?
+
+  rolePermissions RolePermission[]
+}
+
+model RolePermission {
+  roleId       String @db.Uuid
+  permissionId String @db.Uuid
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+}
+
+model Session {
+  id               String    @id @default(uuid()) @db.Uuid
+  organizationId   String    @db.Uuid
+  userId           String    @db.Uuid
+  refreshTokenHash String
+  userAgent        String?
+  ipAddress        String?
+  revokedAt        DateTime?
+  expiresAt        DateTime
+  createdAt        DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, userId])
+  @@index([userId, revokedAt, expiresAt])
+}
+
+model AuditLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String?  @db.Uuid
+  userId         String?  @db.Uuid
+  action         String
+  entityType     String
+  entityId       String?  @db.Uuid
+  oldValues      Json?
+  newValues      Json?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([userId, createdAt])
+  @@index([entityType, entityId])
+}

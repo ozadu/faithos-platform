@@ -1,7 +1,7 @@
 {
   "extends": "@faithos/config/typescript/base.json",
   "compilerOptions": {
-    "declaration": true,
+    "declaration": false,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "module": "commonjs",

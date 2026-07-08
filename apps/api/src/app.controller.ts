@@ -1,5 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 
+import { RawResponse } from './common/raw-response.decorator';
+
 interface HealthResponse {
   service: 'api';
   status: 'ok';
@@ -8,6 +10,7 @@ interface HealthResponse {
 @Controller()
 export class AppController {
   @Get('health')
+  @RawResponse()
   getHealth(): HealthResponse {
     return {
       service: 'api',

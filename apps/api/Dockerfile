@@ -11,7 +11,8 @@ WORKDIR /workspace
 COPY . .
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+RUN pnpm --filter @faithos/database build
 
 EXPOSE 3001
 
-CMD ["pnpm", "--filter", "@faithos/api", "dev"]
+CMD ["sh", "-c", "pnpm db:migrate:deploy && pnpm db:seed && pnpm --filter @faithos/api dev"]

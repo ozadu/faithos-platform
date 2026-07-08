@@ -3,8 +3,8 @@
   "compilerOptions": {
     "declaration": true,
     "declarationMap": true,
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
+    "module": "commonjs",
+    "moduleResolution": "node",
     "outDir": "dist",
     "rootDir": "src",
     "sourceMap": true
