@@ -8,7 +8,9 @@ import { apiFetch, type DocumentRecord } from '../lib/api-client';
 
 export default function SearchPage() {
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
-  const [message, setMessage] = useState('Enter filters and search real documents.');
+  const [message, setMessage] = useState(
+    'Enter filters and search real documents.',
+  );
 
   async function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

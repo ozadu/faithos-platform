@@ -140,12 +140,12 @@ export async function apiFetch<T>(
   });
 
   const payload = (await response.json().catch(() => null)) as
-    | ApiEnvelope<T>
-    | { message?: string }
-    | null;
+    ApiEnvelope<T> | { message?: string } | null;
 
   if (!response.ok) {
-    throw new Error(payload?.message ?? `API request failed: ${response.status}`);
+    throw new Error(
+      payload?.message ?? `API request failed: ${response.status}`,
+    );
   }
 
   return payload as ApiEnvelope<T>;

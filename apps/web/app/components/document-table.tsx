@@ -28,7 +28,9 @@ export function DocumentTable({
           const department = isInboxRecord
             ? document.fromDepartment?.name
             : document.currentDepartment?.name;
-          const date = isInboxRecord ? document.receivedDate : document.updatedAt;
+          const date = isInboxRecord
+            ? document.receivedDate
+            : document.updatedAt;
           return (
             <tr key={document.id}>
               <td>
@@ -40,7 +42,11 @@ export function DocumentTable({
               <td>{department}</td>
               <td>{document.priority}</td>
               <td>
-                <Status tone={'unread' in document && document.unread ? 'warn' : 'neutral'}>
+                <Status
+                  tone={
+                    'unread' in document && document.unread ? 'warn' : 'neutral'
+                  }
+                >
                   {document.status}
                 </Status>
               </td>

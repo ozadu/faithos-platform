@@ -30,10 +30,18 @@ export default function HealthCheckPage() {
           <button type="button" onClick={runChecks}>
             Run Browser Health Checks
           </button>
-          <Link className="button secondary" href={`${apiBaseUrl}/api/docs`} target="_blank">
+          <Link
+            className="button secondary"
+            href={`${apiBaseUrl}/api/docs`}
+            target="_blank"
+          >
             Swagger
           </Link>
-          <Link className="button secondary" href="http://localhost:8025" target="_blank">
+          <Link
+            className="button secondary"
+            href="http://localhost:8025"
+            target="_blank"
+          >
             Mailpit
           </Link>
         </div>

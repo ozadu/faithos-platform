@@ -15,7 +15,9 @@ export default function DepartmentsPage() {
       setDepartments(response.data);
       setMessage('Loaded.');
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Could not load departments');
+      setMessage(
+        error instanceof Error ? error.message : 'Could not load departments',
+      );
     }
   }
 
@@ -69,7 +71,10 @@ export default function DepartmentsPage() {
           </label>
           <label>
             Description
-            <input name="description" placeholder="Legal review and compliance" />
+            <input
+              name="description"
+              placeholder="Legal review and compliance"
+            />
           </label>
           <div className="full">
             <button type="submit">Create Department</button>
@@ -91,7 +96,10 @@ export default function DepartmentsPage() {
                   <td>{department.name}</td>
                   <td>{department.description}</td>
                   <td>
-                    <button type="button" onClick={() => void remove(department.id)}>
+                    <button
+                      type="button"
+                      onClick={() => void remove(department.id)}
+                    >
                       Delete
                     </button>
                   </td>

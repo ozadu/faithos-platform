@@ -39,7 +39,10 @@ function responseHeaders(response: Response): Headers {
   return headers;
 }
 
-async function proxy(request: Request, context: RouteContext): Promise<Response> {
+async function proxy(
+  request: Request,
+  context: RouteContext,
+): Promise<Response> {
   const { path } = await context.params;
   const requestUrl = new URL(request.url);
   const apiPath = `${toApiPath(path)}${requestUrl.search}`;

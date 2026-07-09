@@ -46,7 +46,10 @@ export default function LoginPage() {
       <div className="hero">
         <p className="eyebrow">Identity Foundation</p>
         <h1>Login</h1>
-        <p>Authenticate against the real FaithOS API and store the access token in this browser for UAT.</p>
+        <p>
+          Authenticate against the real FaithOS API and store the access token
+          in this browser for UAT.
+        </p>
       </div>
       <form className="panel form-grid" onSubmit={onSubmit}>
         <label>

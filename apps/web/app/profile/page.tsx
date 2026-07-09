@@ -25,7 +25,11 @@ export default function ProfilePage() {
         </div>
         <div className="panel">
           {error ? <p className="error">API error: {error}</p> : null}
-          {profile ? <pre>{JSON.stringify(profile, null, 2)}</pre> : <p>Loading...</p>}
+          {profile ? (
+            <pre>{JSON.stringify(profile, null, 2)}</pre>
+          ) : (
+            <p>Loading...</p>
+          )}
         </div>
       </section>
     </AuthRequired>

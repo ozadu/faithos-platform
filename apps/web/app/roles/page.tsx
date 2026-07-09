@@ -28,7 +28,11 @@ export default function RolesPage() {
                 <tr key={role.id}>
                   <td>{role.name}</td>
                   <td>{role.isSystem ? 'System' : 'Organization'}</td>
-                  <td>{role.permissions?.map((permission) => permission.code).join(', ')}</td>
+                  <td>
+                    {role.permissions
+                      ?.map((permission) => permission.code)
+                      .join(', ')}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -6,7 +6,10 @@ export default function DocumentsPage() {
       <div className="hero">
         <p className="eyebrow">Documents</p>
         <h1>Document List</h1>
-        <p>All routed and draft documents available to the current tenant via API.</p>
+        <p>
+          All routed and draft documents available to the current tenant via
+          API.
+        </p>
       </div>
       <DocumentsView path="/documents" title="Documents" />
     </section>

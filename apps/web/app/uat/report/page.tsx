@@ -37,7 +37,9 @@ export default function UatReportPage() {
       <div className="hero">
         <p className="eyebrow">Lead QA</p>
         <h1>UAT Report</h1>
-        <p>Current browser-testability status for implemented FaithOS features.</p>
+        <p>
+          Current browser-testability status for implemented FaithOS features.
+        </p>
       </div>
       <section className="panel">
         <h2>Working features</h2>
@@ -58,9 +60,9 @@ export default function UatReportPage() {
       <section className="panel">
         <h2>Missing UI only</h2>
         <p>
-          Detailed edit forms for users/departments and role-permission mutation controls.
-          The backend APIs exist; the UAT shell exposes at least one connected path for
-          each implemented domain.
+          Detailed edit forms for users/departments and role-permission mutation
+          controls. The backend APIs exist; the UAT shell exposes at least one
+          connected path for each implemented domain.
         </p>
       </section>
       <section className="panel">
@@ -77,8 +79,8 @@ export default function UatReportPage() {
         <h2>Broken links, runtime errors, API errors</h2>
         <p>
           Manual browser verification completed against the Docker stack. No
-          broken local UAT routes, runtime errors, browser console errors, or API
-          error markers were found.
+          broken local UAT routes, runtime errors, browser console errors, or
+          API error markers were found.
         </p>
       </section>
     </section>

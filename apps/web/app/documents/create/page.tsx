@@ -8,7 +8,9 @@ import { apiFetch, type DocumentRecord } from '../../lib/api-client';
 
 export default function CreateDocumentPage() {
   const [created, setCreated] = useState<DocumentRecord | null>(null);
-  const [message, setMessage] = useState('Fill the form and save a real draft.');
+  const [message, setMessage] = useState(
+    'Fill the form and save a real draft.',
+  );
 
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -39,12 +41,18 @@ export default function CreateDocumentPage() {
         <div className="hero">
           <p className="eyebrow">Create Document</p>
           <h1>New Draft</h1>
-          <p>Compose an internal document and save it through `POST /documents`.</p>
+          <p>
+            Compose an internal document and save it through `POST /documents`.
+          </p>
         </div>
         <form className="panel form-grid" onSubmit={create}>
           <label>
             Title
-            <input name="title" placeholder="Quarterly budget review" required />
+            <input
+              name="title"
+              placeholder="Quarterly budget review"
+              required
+            />
           </label>
           <label>
             Category
@@ -74,12 +82,20 @@ export default function CreateDocumentPage() {
           </label>
           <label className="full">
             Body
-            <textarea name="body" placeholder="Write the document body..." required rows={8} />
+            <textarea
+              name="body"
+              placeholder="Write the document body..."
+              required
+              rows={8}
+            />
           </label>
           <div className="full actions">
             <button type="submit">Save Draft</button>
             {created ? (
-              <Link className="button secondary" href={`/documents/${created.id}`}>
+              <Link
+                className="button secondary"
+                href={`/documents/${created.id}`}
+              >
                 Open Created Draft
               </Link>
             ) : null}

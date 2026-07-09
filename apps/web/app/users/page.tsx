@@ -3,7 +3,12 @@
 import { FormEvent, useEffect, useState } from 'react';
 
 import { AuthRequired } from '../components/auth-required';
-import { apiFetch, type Department, type DemoUser, type Role } from '../lib/api-client';
+import {
+  apiFetch,
+  type Department,
+  type DemoUser,
+  type Role,
+} from '../lib/api-client';
 
 type UserRecord = DemoUser & {
   department?: Department | null;
@@ -22,17 +27,20 @@ export default function UsersPage() {
 
   async function load() {
     try {
-      const [userResponse, departmentResponse, roleResponse] = await Promise.all([
-        apiFetch<UserRecord[]>('/users'),
-        apiFetch<Department[]>('/departments'),
-        apiFetch<Role[]>('/roles'),
-      ]);
+      const [userResponse, departmentResponse, roleResponse] =
+        await Promise.all([
+          apiFetch<UserRecord[]>('/users'),
+          apiFetch<Department[]>('/departments'),
+          apiFetch<Role[]>('/roles'),
+        ]);
       setUsers(userResponse.data);
       setDepartments(departmentResponse.data);
       setRoles(roleResponse.data.filter((role) => !role.isSystem));
       setMessage('Loaded.');
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Could not load users');
+      setMessage(
+        error instanceof Error ? error.message : 'Could not load users',
+      );
     }
   }
 
@@ -45,7 +53,10 @@ export default function UsersPage() {
     const form = new FormData(event.currentTarget);
     setMessage('Creating user...');
     try {
-      const response = await apiFetch<{ temporaryPassword: string; user: UserRecord }>('/users', {
+      const response = await apiFetch<{
+        temporaryPassword: string;
+        user: UserRecord;
+      }>('/users', {
         body: JSON.stringify({
           departmentId: String(form.get('departmentId') ?? ''),
           email: String(form.get('email') ?? ''),
@@ -59,7 +70,9 @@ export default function UsersPage() {
       });
       event.currentTarget.reset();
       await load();
-      setMessage(`User created. Temporary password: ${response.data.temporaryPassword}`);
+      setMessage(
+        `User created. Temporary password: ${response.data.temporaryPassword}`,
+      );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Create failed');
     }

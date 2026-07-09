@@ -16,7 +16,11 @@ export function DocumentsView({
       path={path}
       title={title}
       render={(documents) =>
-        documents.length ? <DocumentTable documents={documents} /> : <p>No records found.</p>
+        documents.length ? (
+          <DocumentTable documents={documents} />
+        ) : (
+          <p>No records found.</p>
+        )
       }
     />
   );

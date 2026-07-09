@@ -27,7 +27,9 @@ export function DocumentDetailClient({ id }: { id: string }) {
       setDepartments(departmentResponse.data);
       setMessage('Loaded.');
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Could not load document');
+      setMessage(
+        error instanceof Error ? error.message : 'Could not load document',
+      );
     }
   }
 
@@ -73,7 +75,9 @@ export function DocumentDetailClient({ id }: { id: string }) {
   async function deleteAttachment(attachmentId: string) {
     setMessage('Deleting attachment...');
     try {
-      await apiFetch<null>(`/attachments/${attachmentId}`, { method: 'DELETE' });
+      await apiFetch<null>(`/attachments/${attachmentId}`, {
+        method: 'DELETE',
+      });
       await load();
       setMessage('Attachment deleted.');
     } catch (error) {
@@ -116,7 +120,8 @@ export function DocumentDetailClient({ id }: { id: string }) {
               <p className="eyebrow">{document.referenceNumber}</p>
               <h1>{document.title}</h1>
               <p>
-                {document.senderDepartment?.name} → {document.currentDepartment?.name}
+                {document.senderDepartment?.name} →{' '}
+                {document.currentDepartment?.name}
               </p>
               <Status>{document.status}</Status>
             </div>
@@ -186,7 +191,9 @@ export function DocumentDetailClient({ id }: { id: string }) {
                   const form = new FormData(event.currentTarget);
                   void action(`/documents/${id}/forward`, {
                     departmentId: String(form.get('departmentId') ?? ''),
-                    note: String(form.get('note') ?? 'Forwarded from UAT screen.'),
+                    note: String(
+                      form.get('note') ?? 'Forwarded from UAT screen.',
+                    ),
                   });
                 }}
               >
@@ -209,8 +216,8 @@ export function DocumentDetailClient({ id }: { id: string }) {
                 </div>
               </form>
               <p>
-                Approval/rejection actions are not implemented in the backend yet.{' '}
-                <PlannedBadge />
+                Approval/rejection actions are not implemented in the backend
+                yet. <PlannedBadge />
               </p>
             </section>
 
