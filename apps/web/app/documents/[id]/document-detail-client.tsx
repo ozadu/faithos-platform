@@ -37,7 +37,7 @@ export function DocumentDetailClient({ id }: { id: string }) {
     void load();
   }, []);
 
-  async function action(path: string, body: Record<string, string> = {}) {
+  async function action(path: string, body: Record<string, unknown> = {}) {
     setMessage(`Calling ${path}...`);
     try {
       await apiFetch<DocumentRecord>(path, {
@@ -216,9 +216,52 @@ export function DocumentDetailClient({ id }: { id: string }) {
                 </div>
               </form>
               <p>
-                Approval/rejection actions are not implemented in the backend
-                yet. <PlannedBadge />
+                Workflow approval/rejection actions now live on{' '}
+                <a href="/my-tasks">My Tasks</a>. Legacy document-level
+                approve/reject endpoints are still <PlannedBadge />
               </p>
+            </section>
+
+            <section className="panel stack">
+              <h2>Start Workflow</h2>
+              <p>
+                Starts the assigned workflow for this document type. Purchase
+                Request can exercise conditional routing with purchase amount.
+              </p>
+              <form
+                className="form-grid"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const form = new FormData(event.currentTarget);
+                  const purchaseAmount = Number(
+                    form.get('purchaseAmount') ?? 0,
+                  );
+                  void action(`/documents/${id}/workflow/start`, {
+                    comments: String(
+                      form.get('comments') ?? 'Started from UAT.',
+                    ),
+                    metadata: Number.isFinite(purchaseAmount)
+                      ? { purchaseAmount }
+                      : {},
+                  });
+                }}
+              >
+                <label>
+                  Purchase amount metadata
+                  <input
+                    defaultValue="750000"
+                    name="purchaseAmount"
+                    type="number"
+                  />
+                </label>
+                <label>
+                  Comments
+                  <input name="comments" placeholder="Start workflow" />
+                </label>
+                <div className="full">
+                  <button type="submit">Start Assigned Workflow</button>
+                </div>
+              </form>
             </section>
 
             <section className="panel stack">

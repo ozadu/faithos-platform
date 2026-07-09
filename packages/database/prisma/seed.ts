@@ -7,6 +7,11 @@ import {
   OrganizationStatus,
   PrismaClient,
   UserStatus,
+  WorkflowConditionOperator,
+  WorkflowHistoryAction,
+  WorkflowInstanceStatus,
+  WorkflowNotificationType,
+  WorkflowTaskStatus,
 } from '@prisma/client';
 import { hash } from 'argon2';
 
@@ -32,6 +37,9 @@ const permissions = [
     'Submit, receive, forward, and return documents',
     'documents',
   ],
+  ['workflows.read', 'View workflows and workflow activity', 'workflows'],
+  ['workflows.write', 'Manage workflow templates and assignments', 'workflows'],
+  ['workflows.execute', 'Execute workflow approval tasks', 'workflows'],
 ] as const;
 
 async function upsertSystemRole(
@@ -223,9 +231,27 @@ async function main(): Promise<void> {
     ownerId: adminUser.id,
   });
 
+  await seedWorkflows({
+    actorId: adminUser.id,
+    departments: {
+      executive: executiveDepartment.id,
+      finance: financeDepartment.id,
+      operations: operationsDepartment.id,
+      people: peopleDepartment.id,
+    },
+    organizationId: organization.id,
+    ownerId: adminUser.id,
+    users: {
+      admin: adminUser.id,
+      financeLead: sampleUsers[0].id,
+      operationsManager: sampleUsers[1].id,
+      peoplePartner: sampleUsers[2].id,
+    },
+  });
+
   console.log(`Seeded demo user ${DEMO_EMAIL}`);
   console.log(
-    `Seeded ${departments.length} departments, ${sampleUsers.length + 1} users, and DocRoute sample documents`,
+    `Seeded ${departments.length} departments, ${sampleUsers.length + 1} users, DocRoute documents, and workflow examples`,
   );
 }
 
@@ -472,6 +498,387 @@ async function seedDocuments({
       });
     }
   }
+}
+
+async function seedWorkflows({
+  actorId,
+  departments,
+  organizationId,
+  ownerId,
+  users,
+}: {
+  actorId: string;
+  departments: {
+    executive: string;
+    finance: string;
+    operations: string;
+    people: string;
+  };
+  organizationId: string;
+  ownerId: string;
+  users: {
+    admin: string;
+    financeLead: string;
+    operationsManager: string;
+    peoplePartner: string;
+  };
+}): Promise<void> {
+  const purchaseWorkflow = await ensureWorkflow({
+    description:
+      'Conditional purchase approvals. Finance handles smaller requests; Executive Office handles larger approvals.',
+    name: 'Purchase Request Approval',
+    organizationId,
+    steps: [
+      {
+        conditionField: 'purchaseAmount',
+        conditionOperator: WorkflowConditionOperator.LT,
+        conditionValue: '500000',
+        departmentId: departments.finance,
+        dueDays: 2,
+        escalationDays: 1,
+        sequence: 1,
+      },
+      {
+        canForward: true,
+        conditionField: 'purchaseAmount',
+        conditionOperator: WorkflowConditionOperator.GTE,
+        conditionValue: '500000',
+        departmentId: departments.executive,
+        dueDays: 3,
+        escalationDays: 1,
+        sequence: 2,
+      },
+    ],
+  });
+
+  const memoWorkflow = await ensureWorkflow({
+    description: 'Memo review across operations and executive leadership.',
+    name: 'Memo Review',
+    organizationId,
+    steps: [
+      {
+        departmentId: departments.operations,
+        dueDays: 2,
+        escalationDays: 1,
+        sequence: 1,
+      },
+      {
+        departmentId: departments.executive,
+        dueDays: 2,
+        escalationDays: 1,
+        sequence: 2,
+      },
+    ],
+  });
+
+  const leaveWorkflow = await ensureWorkflow({
+    description: 'People team review followed by executive approval.',
+    name: 'Leave Request Approval',
+    organizationId,
+    steps: [
+      {
+        departmentId: departments.people,
+        dueDays: 1,
+        escalationDays: 1,
+        sequence: 1,
+      },
+      {
+        departmentId: departments.executive,
+        dueDays: 2,
+        escalationDays: 1,
+        sequence: 2,
+      },
+    ],
+  });
+
+  for (const [documentType, workflowId] of [
+    ['Memo', memoWorkflow.id],
+    ['Purchase Request', purchaseWorkflow.id],
+    ['Leave Request', leaveWorkflow.id],
+    ['Circular', memoWorkflow.id],
+    ['Asset Request', purchaseWorkflow.id],
+    ['Travel Request', memoWorkflow.id],
+  ] as const) {
+    await prisma.workflowAssignment.upsert({
+      create: {
+        active: true,
+        documentType,
+        organizationId,
+        workflowId,
+      },
+      update: { active: true, workflowId },
+      where: {
+        organizationId_documentType: {
+          documentType,
+          organizationId,
+        },
+      },
+    });
+  }
+
+  await prisma.workflowDelegation.upsert({
+    create: {
+      active: true,
+      endsAt: new Date('2026-12-31T23:59:59.000Z'),
+      fromUserId: users.financeLead,
+      organizationId,
+      reason: 'Demo leave coverage for workflow delegation testing.',
+      startsAt: new Date('2026-07-01T00:00:00.000Z'),
+      toUserId: users.operationsManager,
+    },
+    update: {
+      active: true,
+      endsAt: new Date('2026-12-31T23:59:59.000Z'),
+      startsAt: new Date('2026-07-01T00:00:00.000Z'),
+      toUserId: users.operationsManager,
+    },
+    where: {
+      id: await findOrCreateDelegationId({
+        fromUserId: users.financeLead,
+        organizationId,
+      }),
+    },
+  });
+
+  const pendingDocument = await ensureWorkflowDocument({
+    actorId,
+    category: 'Purchase Request',
+    currentDepartmentId: departments.executive,
+    organizationId,
+    ownerId,
+    referenceNumber: 'DOC-2026-000011',
+    senderDepartmentId: departments.finance,
+    title: 'Generator procurement request',
+  });
+
+  const activeVersion = await prisma.workflowVersion.findFirstOrThrow({
+    orderBy: { version: 'desc' },
+    where: { active: true, workflowId: purchaseWorkflow.id },
+  });
+  const executiveStep = await prisma.workflowStep.findFirstOrThrow({
+    orderBy: { sequence: 'asc' },
+    where: {
+      conditionOperator: WorkflowConditionOperator.GTE,
+      workflowVersionId: activeVersion.id,
+    },
+  });
+
+  const existingInstance = await prisma.workflowInstance.findFirst({
+    where: {
+      documentId: pendingDocument.id,
+      organizationId,
+      status: WorkflowInstanceStatus.IN_PROGRESS,
+    },
+  });
+  if (!existingInstance) {
+    const instance = await prisma.workflowInstance.create({
+      data: {
+        currentStepId: executiveStep.id,
+        documentId: pendingDocument.id,
+        metadata: { purchaseAmount: 750000 },
+        organizationId,
+        startedBy: actorId,
+        workflowId: purchaseWorkflow.id,
+        workflowVersionId: activeVersion.id,
+      },
+    });
+    await prisma.workflowTask.create({
+      data: {
+        assignedDepartmentId: departments.executive,
+        assignedUserId: users.admin,
+        documentId: pendingDocument.id,
+        dueAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+        organizationId,
+        reminderAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+        status: WorkflowTaskStatus.PENDING,
+        stepId: executiveStep.id,
+        workflowInstanceId: instance.id,
+      },
+    });
+    await prisma.workflowHistoryEvent.create({
+      data: {
+        action: WorkflowHistoryAction.STARTED,
+        actorDepartmentId: departments.finance,
+        actorUserId: actorId,
+        comments: 'Seeded purchase request entered the approval workflow.',
+        documentId: pendingDocument.id,
+        nextStepId: executiveStep.id,
+        organizationId,
+        workflowInstanceId: instance.id,
+      },
+    });
+    await prisma.workflowNotification.create({
+      data: {
+        departmentId: departments.executive,
+        documentId: pendingDocument.id,
+        message: 'Generator procurement request requires approval.',
+        organizationId,
+        title: 'Workflow approval required',
+        type: WorkflowNotificationType.APPROVAL_REQUIRED,
+        userId: users.admin,
+        workflowInstanceId: instance.id,
+      },
+    });
+  }
+}
+
+async function ensureWorkflow({
+  description,
+  name,
+  organizationId,
+  steps,
+}: {
+  description: string;
+  name: string;
+  organizationId: string;
+  steps: Array<{
+    canForward?: boolean;
+    conditionField?: string;
+    conditionOperator?: WorkflowConditionOperator;
+    conditionValue?: string;
+    departmentId: string;
+    dueDays: number;
+    escalationDays: number;
+    sequence: number;
+  }>;
+}) {
+  const workflow = await prisma.workflow.upsert({
+    create: {
+      active: true,
+      description,
+      name,
+      organizationId,
+      version: 1,
+    },
+    update: { active: true, description },
+    where: {
+      organizationId_name: {
+        name,
+        organizationId,
+      },
+    },
+  });
+
+  const version = await prisma.workflowVersion.upsert({
+    create: {
+      active: true,
+      description: 'Seeded workflow version',
+      version: 1,
+      workflowId: workflow.id,
+    },
+    update: { active: true, description: 'Seeded workflow version' },
+    where: {
+      workflowId_version: {
+        version: 1,
+        workflowId: workflow.id,
+      },
+    },
+  });
+
+  for (const step of steps) {
+    const existing = await prisma.workflowStep.findFirst({
+      where: {
+        sequence: step.sequence,
+        workflowId: workflow.id,
+        workflowVersionId: version.id,
+      },
+    });
+    const data = {
+      approvalRequired: true,
+      canForward: step.canForward ?? false,
+      canReturn: true,
+      conditionField: step.conditionField,
+      conditionOperator: step.conditionOperator,
+      conditionValue: step.conditionValue,
+      departmentId: step.departmentId,
+      dueDays: step.dueDays,
+      escalationDays: step.escalationDays,
+      notifyEmail: false,
+      notifyInApp: true,
+      sequence: step.sequence,
+      workflowId: workflow.id,
+      workflowVersionId: version.id,
+    };
+
+    if (existing) {
+      await prisma.workflowStep.update({ data, where: { id: existing.id } });
+    } else {
+      await prisma.workflowStep.create({ data });
+    }
+  }
+
+  return workflow;
+}
+
+async function findOrCreateDelegationId({
+  fromUserId,
+  organizationId,
+}: {
+  fromUserId: string;
+  organizationId: string;
+}) {
+  const existing = await prisma.workflowDelegation.findFirst({
+    select: { id: true },
+    where: { fromUserId, organizationId },
+  });
+
+  return existing?.id ?? '00000000-0000-0000-0000-000000000001';
+}
+
+async function ensureWorkflowDocument({
+  actorId,
+  category,
+  currentDepartmentId,
+  organizationId,
+  ownerId,
+  referenceNumber,
+  senderDepartmentId,
+  title,
+}: {
+  actorId: string;
+  category: string;
+  currentDepartmentId: string;
+  organizationId: string;
+  ownerId: string;
+  referenceNumber: string;
+  senderDepartmentId: string;
+  title: string;
+}) {
+  const existing = await prisma.document.findUnique({
+    where: { referenceNumber },
+  });
+  if (existing) return existing;
+
+  const document = await prisma.document.create({
+    data: {
+      body: `Seeded workflow sample for ${title}.`,
+      category,
+      confidentiality: DocumentConfidentiality.INTERNAL,
+      currentDepartmentId,
+      ownerUserId: ownerId,
+      organizationId,
+      priority: DocumentPriority.HIGH,
+      referenceNumber,
+      senderDepartmentId,
+      status: DocumentStatus.IN_REVIEW,
+      subject: title,
+      title,
+      createdBy: actorId,
+      updatedBy: actorId,
+    },
+  });
+  await prisma.documentTimelineEvent.create({
+    data: {
+      action: DocumentTimelineAction.SUBMITTED,
+      actorUserId: actorId,
+      documentId: document.id,
+      fromDepartmentId: senderDepartmentId,
+      organizationId,
+      toDepartmentId: currentDepartmentId,
+    },
+  });
+
+  return document;
 }
 
 void main()
