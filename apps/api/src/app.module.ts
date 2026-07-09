@@ -7,6 +7,7 @@ import { CommonModule } from './common/common.module';
 import { EnvironmentModule } from './config/environment.module';
 import { DatabaseModule } from './database/database.module';
 import { DepartmentsModule } from './departments/departments.module';
+import { DocumentsModule } from './documents/documents.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { RolesModule } from './roles/roles.module';
@@ -25,6 +26,7 @@ import { UsersModule } from './users/users.module';
     UsersModule,
     RolesModule,
     PermissionsModule,
+    DocumentsModule,
   ],
 })
 export class AppModule {}

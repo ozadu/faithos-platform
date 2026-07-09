@@ -106,6 +106,35 @@ docker compose exec redis redis-cli ping
 
 Open http://localhost:8025 for Mailpit and http://localhost:3001/api/docs for Swagger.
 
+## DocRoute Core
+
+Sprint 2 introduces the internal document routing MVP.
+
+API endpoints use the `/api/v1` prefix:
+
+- `GET /documents`
+- `GET /documents/:id`
+- `POST /documents`
+- `PATCH /documents/:id`
+- `DELETE /documents/:id`
+- `POST /documents/:id/submit`
+- `POST /documents/:id/forward`
+- `POST /documents/:id/return`
+- `POST /documents/:id/receive`
+- `GET /inbox`
+- `GET /sent`
+- `GET /drafts`
+- `GET /archive`
+- `POST /documents/:id/attachments`
+- `GET /attachments/:id/download`
+- `DELETE /attachments/:id`
+
+The web app includes DocRoute pages for Dashboard, Inbox, Sent, Drafts,
+Archive, Documents, Create Document, Search, and Document Detail/Timeline.
+
+Attachments are stored locally. Configure `ATTACHMENT_STORAGE_DIR` when you do
+not want the default local `storage/attachments` path.
+
 ## Workspace layout
 
 - `apps/web` — Next.js App Router application
