@@ -18,6 +18,48 @@ enum UserStatus {
   DISABLED
 }
 
+enum DocumentStatus {
+  DRAFT
+  SUBMITTED
+  IN_REVIEW
+  FORWARDED
+  RETURNED
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+enum DocumentPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum DocumentConfidentiality {
+  PUBLIC
+  INTERNAL
+  CONFIDENTIAL
+  RESTRICTED
+}
+
+enum DocumentRouteAction {
+  SUBMITTED
+  FORWARDED
+  RETURNED
+  RECEIVED
+}
+
+enum DocumentTimelineAction {
+  CREATED
+  EDITED
+  SUBMITTED
+  FORWARDED
+  RETURNED
+  RECEIVED
+  ARCHIVED
+}
+
 model Organization {
   id        String             @id @default(uuid()) @db.Uuid
   name      String
@@ -36,6 +78,10 @@ model Organization {
   roles       Role[]
   sessions    Session[]
   auditLogs   AuditLog[]
+  documents   Document[]
+  attachments DocumentAttachment[]
+  routes      DocumentRoute[]
+  timeline    DocumentTimelineEvent[]
 }
 
 model Department {
@@ -48,9 +94,15 @@ model Department {
   updatedAt        DateTime  @updatedAt
   deletedAt        DateTime?
 
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  departmentHead User?        @relation("DepartmentHead", fields: [departmentHeadId], references: [id], onDelete: SetNull)
-  members        User[]       @relation("DepartmentMembers")
+  organization     Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  departmentHead   User?                   @relation("DepartmentHead", fields: [departmentHeadId], references: [id], onDelete: SetNull)
+  members          User[]                  @relation("DepartmentMembers")
+  sentDocuments    Document[]              @relation("DocumentSenderDepartment")
+  currentDocuments Document[]              @relation("DocumentCurrentDepartment")
+  routesFrom       DocumentRoute[]         @relation("RouteFromDepartment")
+  routesTo         DocumentRoute[]         @relation("RouteToDepartment")
+  timelineFrom     DocumentTimelineEvent[] @relation("TimelineFromDepartment")
+  timelineTo       DocumentTimelineEvent[] @relation("TimelineToDepartment")
 
   @@unique([organizationId, name])
   @@index([organizationId, deletedAt])
@@ -73,12 +125,18 @@ model User {
   updatedAt      DateTime   @updatedAt
   deletedAt      DateTime?
 
-  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  department        Department?  @relation("DepartmentMembers", fields: [departmentId], references: [id], onDelete: SetNull)
-  role              Role?        @relation(fields: [roleId], references: [id], onDelete: SetNull)
-  headedDepartments Department[] @relation("DepartmentHead")
-  sessions          Session[]
-  auditLogs         AuditLog[]
+  organization        Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  department          Department?             @relation("DepartmentMembers", fields: [departmentId], references: [id], onDelete: SetNull)
+  role                Role?                   @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  headedDepartments   Department[]            @relation("DepartmentHead")
+  sessions            Session[]
+  auditLogs           AuditLog[]
+  ownedDocuments      Document[]              @relation("DocumentOwner")
+  createdDocuments    Document[]              @relation("DocumentCreator")
+  updatedDocuments    Document[]              @relation("DocumentUpdater")
+  uploadedAttachments DocumentAttachment[]
+  routedDocuments     DocumentRoute[]
+  timelineEvents      DocumentTimelineEvent[]
 
   @@index([organizationId, deletedAt])
   @@index([organizationId, departmentId])
@@ -160,4 +218,106 @@ model AuditLog {
   @@index([organizationId, createdAt])
   @@index([userId, createdAt])
   @@index([entityType, entityId])
+}
+
+model Document {
+  id                  String                  @id @default(uuid()) @db.Uuid
+  organizationId      String                  @db.Uuid
+  referenceNumber     String                  @unique
+  title               String
+  subject             String
+  body                String
+  category            String
+  priority            DocumentPriority        @default(NORMAL)
+  confidentiality     DocumentConfidentiality @default(INTERNAL)
+  senderDepartmentId  String                  @db.Uuid
+  currentDepartmentId String                  @db.Uuid
+  ownerUserId         String                  @db.Uuid
+  status              DocumentStatus          @default(DRAFT)
+  createdBy           String                  @db.Uuid
+  updatedBy           String                  @db.Uuid
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+
+  organization      Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  senderDepartment  Department              @relation("DocumentSenderDepartment", fields: [senderDepartmentId], references: [id], onDelete: Restrict)
+  currentDepartment Department              @relation("DocumentCurrentDepartment", fields: [currentDepartmentId], references: [id], onDelete: Restrict)
+  owner             User                    @relation("DocumentOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  creator           User                    @relation("DocumentCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  updater           User                    @relation("DocumentUpdater", fields: [updatedBy], references: [id], onDelete: Restrict)
+  attachments       DocumentAttachment[]
+  routes            DocumentRoute[]
+  timeline          DocumentTimelineEvent[]
+
+  @@index([organizationId, status, createdAt])
+  @@index([organizationId, currentDepartmentId, status])
+  @@index([organizationId, senderDepartmentId])
+  @@index([organizationId, ownerUserId, status])
+  @@index([organizationId, referenceNumber])
+}
+
+model DocumentAttachment {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  documentId     String   @db.Uuid
+  fileName       String
+  storedFileName String
+  storagePath    String
+  mimeType       String
+  sizeBytes      Int
+  uploadedBy     String   @db.Uuid
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  document     Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  uploader     User         @relation(fields: [uploadedBy], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, documentId])
+  @@index([uploadedBy, createdAt])
+}
+
+model DocumentRoute {
+  id               String              @id @default(uuid()) @db.Uuid
+  organizationId   String              @db.Uuid
+  documentId       String              @db.Uuid
+  fromDepartmentId String              @db.Uuid
+  toDepartmentId   String              @db.Uuid
+  routedBy         String              @db.Uuid
+  action           DocumentRouteAction
+  note             String?
+  isRead           Boolean             @default(false)
+  receivedAt       DateTime?
+  createdAt        DateTime            @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  document       Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  fromDepartment Department   @relation("RouteFromDepartment", fields: [fromDepartmentId], references: [id], onDelete: Restrict)
+  toDepartment   Department   @relation("RouteToDepartment", fields: [toDepartmentId], references: [id], onDelete: Restrict)
+  routedByUser   User         @relation(fields: [routedBy], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, documentId, createdAt])
+  @@index([organizationId, toDepartmentId, isRead])
+  @@index([organizationId, fromDepartmentId, createdAt])
+}
+
+model DocumentTimelineEvent {
+  id               String                 @id @default(uuid()) @db.Uuid
+  organizationId   String                 @db.Uuid
+  documentId       String                 @db.Uuid
+  action           DocumentTimelineAction
+  actorUserId      String                 @db.Uuid
+  fromDepartmentId String?                @db.Uuid
+  toDepartmentId   String?                @db.Uuid
+  note             String?
+  metadata         Json?
+  createdAt        DateTime               @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  document       Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  actor          User         @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+  fromDepartment Department?  @relation("TimelineFromDepartment", fields: [fromDepartmentId], references: [id], onDelete: SetNull)
+  toDepartment   Department?  @relation("TimelineToDepartment", fields: [toDepartmentId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, documentId, createdAt])
+  @@index([actorUserId, createdAt])
 }

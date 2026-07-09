@@ -1,0 +1,164 @@
+'use client';
+
+export type ApiEnvelope<T> = {
+  data: T;
+  message: string;
+  meta: Record<string, unknown>;
+  success: boolean;
+};
+
+export type DemoUser = {
+  email: string;
+  firstName?: string;
+  id: string;
+  lastName?: string;
+  organizationId?: string;
+};
+
+export type Department = {
+  id: string;
+  name: string;
+  description?: string | null;
+};
+
+export type Role = {
+  id: string;
+  isSystem: boolean;
+  name: string;
+  permissions?: Permission[];
+};
+
+export type Permission = {
+  code: string;
+  displayName: string;
+  id: string;
+  module: string;
+};
+
+export type DocumentRecord = {
+  attachments?: AttachmentRecord[];
+  body: string;
+  category: string;
+  confidentiality: string;
+  currentDepartment?: Department;
+  currentDepartmentId: string;
+  id: string;
+  priority: string;
+  referenceNumber: string;
+  routes?: RouteRecord[];
+  senderDepartment?: Department;
+  senderDepartmentId: string;
+  status: string;
+  subject: string;
+  timeline?: TimelineRecord[];
+  title: string;
+  updatedAt: string;
+};
+
+export type InboxRecord = {
+  fromDepartment?: Department;
+  id: string;
+  priority: string;
+  receivedDate: string;
+  referenceNumber: string;
+  status: string;
+  title: string;
+  unread: boolean;
+};
+
+export type TimelineRecord = {
+  action: string;
+  actor?: DemoUser;
+  createdAt: string;
+  id: string;
+  note?: string | null;
+};
+
+export type RouteRecord = {
+  action: string;
+  createdAt: string;
+  fromDepartment?: Department;
+  id: string;
+  isRead: boolean;
+  note?: string | null;
+  toDepartment?: Department;
+};
+
+export type AttachmentRecord = {
+  createdAt: string;
+  fileName: string;
+  id: string;
+  mimeType: string;
+  sizeBytes: number;
+};
+
+export const apiBaseUrl =
+  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+
+const apiProxyBasePath = '/api/proxy';
+
+export const demoCredentials = {
+  email: 'admin@demo.faithos.local',
+  password: 'FaithOS-Demo-2026!',
+};
+
+export function getAccessToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return window.localStorage.getItem('faithos.accessToken');
+}
+
+export function saveSession(input: {
+  accessToken: string;
+  refreshToken: string;
+  user: DemoUser;
+}): void {
+  window.localStorage.setItem('faithos.accessToken', input.accessToken);
+  window.localStorage.setItem('faithos.refreshToken', input.refreshToken);
+  window.localStorage.setItem('faithos.user', JSON.stringify(input.user));
+}
+
+export function clearSession(): void {
+  window.localStorage.removeItem('faithos.accessToken');
+  window.localStorage.removeItem('faithos.refreshToken');
+  window.localStorage.removeItem('faithos.user');
+}
+
+export async function apiFetch<T>(
+  path: string,
+  init: RequestInit = {},
+): Promise<ApiEnvelope<T>> {
+  const token = getAccessToken();
+  const response = await fetch(`${apiProxyBasePath}${path}`, {
+    ...init,
+    headers: {
+      ...(init.body instanceof FormData
+        ? {}
+        : { 'Content-Type': 'application/json' }),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...init.headers,
+    },
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    ApiEnvelope<T> | { message?: string } | null;
+
+  if (!response.ok) {
+    throw new Error(
+      payload?.message ?? `API request failed: ${response.status}`,
+    );
+  }
+
+  return payload as ApiEnvelope<T>;
+}
+
+export async function apiHealth(): Promise<unknown> {
+  const response = await fetch(`${apiProxyBasePath}/health`);
+  if (!response.ok) throw new Error(`API health failed: ${response.status}`);
+  return response.json();
+}
+
+export async function webHealth(): Promise<unknown> {
+  const response = await fetch('/health');
+  if (!response.ok) throw new Error(`Web health failed: ${response.status}`);
+  return response.json();
+}
