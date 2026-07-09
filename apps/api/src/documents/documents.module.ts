@@ -6,13 +6,20 @@ import { AuthModule } from '../auth/auth.module';
 import { AuditModule } from '../audit/audit.module';
 import { CommonModule } from '../common/common.module';
 import { DatabaseModule } from '../database/database.module';
+import { WorkflowsModule } from '../workflows/workflows.module';
 import { DocumentsController } from './documents.controller';
 import { DocumentsService } from './documents.service';
 
 @Module({
   controllers: [DocumentsController, AttachmentsController],
   exports: [DocumentsService],
-  imports: [DatabaseModule, CommonModule, AuditModule, AuthModule],
+  imports: [
+    DatabaseModule,
+    CommonModule,
+    AuditModule,
+    AuthModule,
+    WorkflowsModule,
+  ],
   providers: [DocumentsService, AttachmentsService],
 })
 export class DocumentsModule {}

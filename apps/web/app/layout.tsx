@@ -34,6 +34,15 @@ export default function RootLayout({
               <Link href="/documents">Documents</Link>
               <Link href="/documents/create">Create Document</Link>
               <Link href="/search">Search</Link>
+              <Link href="/workflow-templates">Workflow Templates</Link>
+              <Link href="/workflow-builder">Workflow Builder</Link>
+              <Link href="/workflow-assignment">Workflow Assignment</Link>
+              <Link href="/pending-approvals">Pending Approvals</Link>
+              <Link href="/my-tasks">My Tasks</Link>
+              <Link href="/workflow-history">Workflow History</Link>
+              <Link href="/workflow-notifications">Workflow Notifications</Link>
+              <Link href="/workflow-delegations">Delegations</Link>
+              <Link href="/workflow-sla">SLA Engine</Link>
               <Link href="/profile">User Profile</Link>
               <Link href="/organization">Organization</Link>
               <Link href="/users">Users</Link>

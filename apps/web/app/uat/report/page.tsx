@@ -14,19 +14,28 @@ const working = [
   'Departments list/create/delete',
   'Roles and permissions catalog',
   'Health check, Swagger, and Mailpit links',
+  'Workflow template list/create/details',
+  'Workflow builder versioning and conditional route fields',
+  'Document type workflow assignment',
+  'Pending approvals and my task action queues',
+  'Workflow approve, reject, return, forward, receive, complete, and cancel APIs',
+  'Workflow immutable history timeline',
+  'Workflow SLA overdue evaluator',
+  'Temporary delegation records',
+  'Workflow notification records',
 ];
 
 const partial = [
   'Role permission replacement exists in the backend; this UAT screen lists roles/permissions but does not expose mutation controls.',
   'User and department update APIs exist; UAT pages expose create/delete and visible records, with detailed edit flows left for admin UX hardening.',
   'Attachment download uses authenticated browser fetch on document detail; opening raw download URLs directly still requires an auth header.',
+  'Workflow Builder exposes practical step/version editing but not a drag-and-drop visual canvas.',
+  'Workflow notifications are database/API records only; email sending, SMS, and WhatsApp are intentionally out of scope.',
 ];
 
 const missingBackend = [
-  'Approve document',
-  'Reject document',
-  'Workflow templates',
-  'Notification delivery',
+  'SMS and WhatsApp notification delivery',
+  'Drag-and-drop workflow rule authoring',
   'Production object storage',
   'OCR and full-text indexing',
 ];
@@ -61,8 +70,8 @@ export default function UatReportPage() {
         <h2>Missing UI only</h2>
         <p>
           Detailed edit forms for users/departments and role-permission mutation
-          controls. The backend APIs exist; the UAT shell exposes at least one
-          connected path for each implemented domain.
+          controls. A visual workflow canvas is also UI-only future polish; the
+          underlying workflow template/version/condition APIs are exposed.
         </p>
       </section>
       <section className="panel">

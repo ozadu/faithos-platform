@@ -34,6 +34,27 @@ const featureLinks = [
   ['UAT Report', '/uat/report', 'QA status summary'],
 ] as const;
 
+const workflowLinks = [
+  ['Workflow Templates', '/workflow-templates', 'CRUD for reusable templates'],
+  ['Workflow Builder', '/workflow-builder', 'Create versioned step chains'],
+  ['Workflow Details', '/workflow-templates', 'Open a template details page'],
+  [
+    'Workflow Assignment',
+    '/workflow-assignment',
+    'Map document types to workflows',
+  ],
+  ['Pending Approvals', '/pending-approvals', 'Approval work queue'],
+  ['My Tasks', '/my-tasks', 'Receive/approve/reject/return/forward/cancel'],
+  ['Workflow History', '/workflow-history', 'Immutable audit timeline'],
+  [
+    'Workflow Notifications',
+    '/workflow-notifications',
+    'Database notification records',
+  ],
+  ['Delegation', '/workflow-delegations', 'Temporary task delegation'],
+  ['SLA Engine', '/workflow-sla', 'Mark overdue tasks and escalate'],
+] as const;
+
 export default function UatDashboardPage() {
   return (
     <section className="stack">
@@ -42,7 +63,7 @@ export default function UatDashboardPage() {
         <h1>FaithOS UAT Dashboard</h1>
         <p>
           One clickable surface for manually testing every implemented FaithOS
-          feature in Sprint 1 and Sprint 2.
+          feature through Sprint 3.
         </p>
       </div>
 
@@ -87,12 +108,24 @@ export default function UatDashboardPage() {
         </div>
       </section>
 
+      <section className="panel">
+        <h2>Workflow Engine</h2>
+        <div className="uat-grid">
+          {workflowLinks.map(([label, href, description]) => (
+            <Link className="uat-link" href={href} key={label}>
+              <strong>{label}</strong>
+              <span>{description}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
       <section className="panel stack">
         <h2>Planned / not implemented yet</h2>
         <p>
-          Approval, rejection, workflow templates, notification delivery, OCR,
-          full text indexing, and production object storage are not implemented
-          in the backend yet.
+          SMS/WhatsApp delivery, OCR, full text indexing, production object
+          storage, and advanced visual rule authoring are planned for future
+          sprints.
         </p>
         <PlannedBadge />
       </section>

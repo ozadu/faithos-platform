@@ -12,6 +12,7 @@ import { OrganizationsModule } from './organizations/organizations.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { RolesModule } from './roles/roles.module';
 import { UsersModule } from './users/users.module';
+import { WorkflowsModule } from './workflows/workflows.module';
 
 @Module({
   controllers: [AppController],
@@ -27,6 +28,7 @@ import { UsersModule } from './users/users.module';
     RolesModule,
     PermissionsModule,
     DocumentsModule,
+    WorkflowsModule,
   ],
 })
 export class AppModule {}

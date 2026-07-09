@@ -92,6 +92,112 @@ export type AttachmentRecord = {
   sizeBytes: number;
 };
 
+export type WorkflowStep = {
+  approvalRequired: boolean;
+  canForward: boolean;
+  canReturn: boolean;
+  conditionField?: string | null;
+  conditionOperator?: string | null;
+  conditionValue?: string | null;
+  department?: Department | null;
+  departmentId: string;
+  dueDays: number;
+  escalationDays: number;
+  id: string;
+  notifyEmail: boolean;
+  notifyInApp: boolean;
+  role?: Role | null;
+  roleId?: string | null;
+  sequence: number;
+};
+
+export type WorkflowVersion = {
+  active: boolean;
+  id: string;
+  version: number;
+};
+
+export type Workflow = {
+  active: boolean;
+  assignments?: WorkflowAssignment[];
+  createdAt?: string;
+  description?: string | null;
+  id: string;
+  name: string;
+  steps?: WorkflowStep[];
+  updatedAt?: string;
+  version: number;
+  versions?: WorkflowVersion[];
+};
+
+export type WorkflowAssignment = {
+  active: boolean;
+  documentType: string;
+  id: string;
+  workflow?: Pick<Workflow, 'id' | 'name' | 'version'>;
+  workflowId: string;
+};
+
+export type WorkflowTask = {
+  assignedDepartment?: Department | null;
+  assignedDepartmentId?: string | null;
+  assignedRole?: Role | null;
+  assignedUser?: DemoUser | null;
+  completedAt?: string | null;
+  delegatedFromUser?: DemoUser | null;
+  document?: Pick<
+    DocumentRecord,
+    'category' | 'id' | 'referenceNumber' | 'title'
+  >;
+  dueAt: string;
+  escalatedAt?: string | null;
+  id: string;
+  receivedAt?: string | null;
+  reminderAt?: string | null;
+  status: string;
+  step?: WorkflowStep | null;
+  workflowInstance?: {
+    id: string;
+    status?: string;
+    workflow?: Pick<Workflow, 'id' | 'name'>;
+  };
+};
+
+export type WorkflowHistoryEvent = {
+  action: string;
+  actor?: DemoUser | null;
+  actorDepartment?: Department | null;
+  comments?: string | null;
+  createdAt: string;
+  document?: Pick<DocumentRecord, 'id' | 'referenceNumber' | 'title'>;
+  id: string;
+  nextStep?: Pick<WorkflowStep, 'id' | 'sequence'> | null;
+  previousStep?: Pick<WorkflowStep, 'id' | 'sequence'> | null;
+};
+
+export type WorkflowNotification = {
+  createdAt: string;
+  document?: Pick<DocumentRecord, 'id' | 'referenceNumber' | 'title'> | null;
+  id: string;
+  message: string;
+  readAt?: string | null;
+  title: string;
+  type: string;
+  workflowInstance?: { id: string; status: string } | null;
+};
+
+export type WorkflowDelegation = {
+  active: boolean;
+  endsAt: string;
+  fromUser?: DemoUser | null;
+  fromUserId: string;
+  id: string;
+  reason?: string | null;
+  startsAt: string;
+  toUser?: DemoUser | null;
+  toUserId: string;
+};
+
 export const apiBaseUrl =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
