@@ -1,0 +1,50 @@
+{
+  "name": "faithos-platform",
+  "version": "0.0.0",
+  "private": true,
+  "description": "FaithOS platform monorepo",
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=11.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:up": "docker compose up --build",
+    "db:generate": "pnpm --filter @faithos/database db:generate",
+    "db:migrate": "pnpm --filter @faithos/database db:migrate",
+    "db:migrate:deploy": "pnpm --filter @faithos/database db:migrate:deploy",
+    "db:seed": "pnpm --filter @faithos/database db:seed",
+    "db:studio": "pnpm --filter @faithos/database db:studio",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "turbo run lint",
+    "prepare": "husky",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck"
+  },
+  "lint-staged": {
+    "*.{js,mjs,cjs,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml,css}": "prettier --write"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@next/eslint-plugin-next": "16.2.10",
+    "@types/node": "26.1.0",
+    "eslint": "9.39.2",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "17.7.0",
+    "husky": "9.1.7",
+    "lint-staged": "17.0.8",
+    "prettier": "3.9.4",
+    "turbo": "2.10.3",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.62.1"
+  }
+}
