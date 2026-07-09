@@ -132,9 +132,25 @@ nav a:hover {
   padding: 0.25rem 0.6rem;
 }
 
+.badge.good {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge.neutral {
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+.badge.warn,
 .unread {
   background: #dcfce7;
   color: #166534;
+}
+
+.planned {
+  background: #fff7ed;
+  color: #9a3412;
 }
 
 .form-grid {
@@ -176,6 +192,96 @@ button,
   text-decoration: none;
 }
 
+button.secondary,
+.button.secondary {
+  background: #eef2ff;
+  color: #1f2a37;
+}
+
+button:disabled,
+.button[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.error {
+  color: #b42318;
+  font-weight: 700;
+}
+
+.success {
+  color: #166534;
+  font-weight: 700;
+}
+
+.credentials,
+.detail-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.credentials div,
+.detail-grid div {
+  background: #f8fafc;
+  border: 1px solid #e4dfd3;
+  border-radius: 0.85rem;
+  padding: 1rem;
+}
+
+.credentials dt,
+.detail-grid dt {
+  color: #667085;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.credentials dd,
+.detail-grid dd {
+  margin: 0.35rem 0 0;
+}
+
+.uat-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.uat-link {
+  background: #f8fafc;
+  border: 1px solid #e4dfd3;
+  border-radius: 1rem;
+  display: grid;
+  gap: 0.4rem;
+  padding: 1rem;
+  text-decoration: none;
+}
+
+.uat-link:hover {
+  border-color: #d6a94a;
+  box-shadow: 0 10px 24px rgb(31 42 55 / 0.08);
+}
+
+.uat-link span {
+  color: #667085;
+  font-size: 0.9rem;
+}
+
+pre,
+code {
+  background: #f8fafc;
+  border-radius: 0.4rem;
+  padding: 0.15rem 0.35rem;
+}
+
 .timeline {
   display: grid;
   gap: 1rem;
@@ -191,7 +297,10 @@ button,
 @media (max-width: 800px) {
   .shell,
   .cards,
-  .form-grid {
+  .form-grid,
+  .credentials,
+  .detail-grid,
+  .uat-grid {
     grid-template-columns: 1fr;
   }
 

@@ -1,4 +1,4 @@
-import { documents } from '../docroute-data';
+import { DocumentsView } from '../components/documents-view';
 
 export default function SentPage() {
   return (
@@ -8,20 +8,7 @@ export default function SentPage() {
         <h1>Sent Documents</h1>
         <p>Documents created or submitted by you.</p>
       </div>
-      <div className="panel">
-        <table className="table">
-          <tbody>
-            {documents.map((document) => (
-              <tr key={document.id}>
-                <td>{document.reference}</td>
-                <td>{document.title}</td>
-                <td>{document.currentDepartment}</td>
-                <td>{document.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DocumentsView path="/sent" title="Sent" />
     </section>
   );
 }
