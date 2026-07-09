@@ -1,4 +1,9 @@
 export {
+  DocumentConfidentiality,
+  DocumentPriority,
+  DocumentRouteAction,
+  DocumentStatus,
+  DocumentTimelineAction,
   OrganizationStatus,
   Prisma,
   PrismaClient,
@@ -8,6 +13,10 @@ export {
 export type {
   AuditLog,
   Department,
+  Document,
+  DocumentAttachment,
+  DocumentRoute,
+  DocumentTimelineEvent,
   Organization,
   Permission,
   Role,
