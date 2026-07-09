@@ -42,6 +42,7 @@ export default function WorkflowTemplatesPage() {
 
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formElement = event.currentTarget;
     const form = new FormData(event.currentTarget);
     const departmentId = String(form.get('departmentId') ?? '');
     const roleId = String(form.get('roleId') ?? '');
@@ -69,7 +70,7 @@ export default function WorkflowTemplatesPage() {
         }),
         method: 'POST',
       });
-      event.currentTarget.reset();
+      formElement.reset();
       await load();
       setMessage('Workflow template created.');
     } catch (error) {

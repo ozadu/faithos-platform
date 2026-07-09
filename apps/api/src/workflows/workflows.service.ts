@@ -38,6 +38,7 @@ const workflowInclude = {
       workflowVersion: { select: { active: true, id: true, version: true } },
     },
     orderBy: { sequence: 'asc' },
+    where: { workflowVersion: { active: true } },
   },
   versions: { orderBy: { version: 'desc' } },
 } satisfies Prisma.WorkflowInclude;
