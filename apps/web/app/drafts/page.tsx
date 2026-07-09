@@ -1,10 +1,8 @@
 import Link from 'next/link';
 
-import { documents } from '../docroute-data';
+import { DocumentsView } from '../components/documents-view';
 
 export default function DraftsPage() {
-  const drafts = documents.filter((document) => document.status === 'DRAFT');
-
   return (
     <section className="stack">
       <div className="hero">
@@ -15,23 +13,7 @@ export default function DraftsPage() {
           Create Document
         </Link>
       </div>
-      <div className="panel">
-        {drafts.length === 0 ? (
-          <p>No local preview drafts. Seed data includes drafts in the API.</p>
-        ) : (
-          <table className="table">
-            <tbody>
-              {drafts.map((document) => (
-                <tr key={document.id}>
-                  <td>{document.reference}</td>
-                  <td>{document.title}</td>
-                  <td>{document.priority}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <DocumentsView path="/drafts" title="Drafts" />
     </section>
   );
 }

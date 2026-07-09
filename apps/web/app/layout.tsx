@@ -26,6 +26,7 @@ export default function RootLayout({
             </div>
             <nav>
               <Link href="/">Dashboard</Link>
+              <Link href="/uat">UAT Dashboard</Link>
               <Link href="/inbox">Inbox</Link>
               <Link href="/sent">Sent</Link>
               <Link href="/drafts">Drafts</Link>
@@ -33,6 +34,14 @@ export default function RootLayout({
               <Link href="/documents">Documents</Link>
               <Link href="/documents/create">Create Document</Link>
               <Link href="/search">Search</Link>
+              <Link href="/profile">User Profile</Link>
+              <Link href="/organization">Organization</Link>
+              <Link href="/users">Users</Link>
+              <Link href="/departments">Departments</Link>
+              <Link href="/roles">Roles</Link>
+              <Link href="/permissions">Permissions</Link>
+              <Link href="/health-check">Health Check</Link>
+              <Link href="/uat/report">UAT Report</Link>
             </nav>
           </aside>
           <main>{children}</main>
