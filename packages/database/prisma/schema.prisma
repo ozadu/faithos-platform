@@ -60,6 +60,58 @@ enum DocumentTimelineAction {
   ARCHIVED
 }
 
+enum WorkflowInstanceStatus {
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  REJECTED
+}
+
+enum WorkflowTaskStatus {
+  PENDING
+  RECEIVED
+  APPROVED
+  REJECTED
+  RETURNED
+  FORWARDED
+  COMPLETED
+  CANCELLED
+  OVERDUE
+}
+
+enum WorkflowHistoryAction {
+  STARTED
+  APPROVED
+  REJECTED
+  RETURNED
+  FORWARDED
+  RECEIVED
+  COMPLETED
+  CANCELLED
+  DELEGATED
+  REMINDER
+  ESCALATED
+}
+
+enum WorkflowConditionOperator {
+  LT
+  LTE
+  GT
+  GTE
+  EQ
+  NEQ
+}
+
+enum WorkflowNotificationType {
+  APPROVAL_REQUIRED
+  RETURNED
+  REJECTED
+  FORWARDED
+  COMPLETED
+  ESCALATED
+  REMINDER
+}
+
 model Organization {
   id        String             @id @default(uuid()) @db.Uuid
   name      String
@@ -82,6 +134,13 @@ model Organization {
   attachments DocumentAttachment[]
   routes      DocumentRoute[]
   timeline    DocumentTimelineEvent[]
+  workflows   Workflow[]
+  workflowAssignments WorkflowAssignment[]
+  workflowInstances WorkflowInstance[]
+  workflowTasks WorkflowTask[]
+  workflowHistory WorkflowHistoryEvent[]
+  delegations WorkflowDelegation[]
+  notifications WorkflowNotification[]
 }
 
 model Department {
@@ -103,6 +162,10 @@ model Department {
   routesTo         DocumentRoute[]         @relation("RouteToDepartment")
   timelineFrom     DocumentTimelineEvent[] @relation("TimelineFromDepartment")
   timelineTo       DocumentTimelineEvent[] @relation("TimelineToDepartment")
+  workflowSteps    WorkflowStep[]
+  assignedWorkflowTasks WorkflowTask[]
+  workflowHistory  WorkflowHistoryEvent[]
+  workflowNotifications WorkflowNotification[]
 
   @@unique([organizationId, name])
   @@index([organizationId, deletedAt])
@@ -137,6 +200,13 @@ model User {
   uploadedAttachments DocumentAttachment[]
   routedDocuments     DocumentRoute[]
   timelineEvents      DocumentTimelineEvent[]
+  startedWorkflows    WorkflowInstance[]
+  assignedWorkflowTasks WorkflowTask[] @relation("WorkflowTaskAssignee")
+  delegatedWorkflowTasks WorkflowTask[] @relation("WorkflowTaskDelegatedFrom")
+  workflowHistory     WorkflowHistoryEvent[]
+  delegationsFrom     WorkflowDelegation[] @relation("DelegationFromUser")
+  delegationsTo       WorkflowDelegation[] @relation("DelegationToUser")
+  workflowNotifications WorkflowNotification[]
 
   @@index([organizationId, deletedAt])
   @@index([organizationId, departmentId])
@@ -155,6 +225,8 @@ model Role {
   organization    Organization?    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   users           User[]
   rolePermissions RolePermission[]
+  workflowSteps   WorkflowStep[]
+  workflowTasks   WorkflowTask[]
 
   @@unique([organizationId, name])
   @@index([organizationId, isSystem])
@@ -248,6 +320,10 @@ model Document {
   attachments       DocumentAttachment[]
   routes            DocumentRoute[]
   timeline          DocumentTimelineEvent[]
+  workflowInstances WorkflowInstance[]
+  workflowTasks     WorkflowTask[]
+  workflowHistory   WorkflowHistoryEvent[]
+  workflowNotifications WorkflowNotification[]
 
   @@index([organizationId, status, createdAt])
   @@index([organizationId, currentDepartmentId, status])
@@ -320,4 +396,227 @@ model DocumentTimelineEvent {
 
   @@index([organizationId, documentId, createdAt])
   @@index([actorUserId, createdAt])
+}
+
+model Workflow {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  name           String
+  description    String?
+  active         Boolean  @default(true)
+  version        Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  versions     WorkflowVersion[]
+  steps        WorkflowStep[]
+  assignments  WorkflowAssignment[]
+  instances    WorkflowInstance[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId, active])
+}
+
+model WorkflowVersion {
+  id          String   @id @default(uuid()) @db.Uuid
+  workflowId  String   @db.Uuid
+  version     Int
+  active      Boolean  @default(true)
+  description String?
+  createdAt   DateTime @default(now())
+
+  workflow  Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  steps     WorkflowStep[]
+  instances WorkflowInstance[]
+
+  @@unique([workflowId, version])
+  @@index([workflowId, active])
+}
+
+model WorkflowStep {
+  id                String                    @id @default(uuid()) @db.Uuid
+  workflowId        String                    @db.Uuid
+  workflowVersionId String?                   @db.Uuid
+  sequence          Int
+  departmentId      String                    @db.Uuid
+  roleId            String?                   @db.Uuid
+  approvalRequired  Boolean                   @default(true)
+  canReturn         Boolean                   @default(true)
+  canForward        Boolean                   @default(false)
+  dueDays           Int                       @default(2)
+  escalationDays    Int                       @default(1)
+  notifyEmail       Boolean                   @default(false)
+  notifyInApp       Boolean                   @default(true)
+  conditionField    String?
+  conditionOperator WorkflowConditionOperator?
+  conditionValue    String?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  workflow        Workflow         @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  workflowVersion WorkflowVersion? @relation(fields: [workflowVersionId], references: [id], onDelete: Cascade)
+  department      Department       @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  role            Role?            @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  instances       WorkflowInstance[] @relation("CurrentWorkflowStep")
+  tasks           WorkflowTask[]
+  previousHistory WorkflowHistoryEvent[] @relation("PreviousWorkflowStep")
+  nextHistory     WorkflowHistoryEvent[] @relation("NextWorkflowStep")
+
+  @@unique([workflowId, workflowVersionId, sequence])
+  @@index([workflowId, sequence])
+  @@index([departmentId])
+  @@index([roleId])
+}
+
+model WorkflowAssignment {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  documentType   String
+  workflowId     String   @db.Uuid
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workflow     Workflow     @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, documentType])
+  @@index([organizationId, active])
+  @@index([workflowId])
+}
+
+model WorkflowInstance {
+  id                String                 @id @default(uuid()) @db.Uuid
+  organizationId    String                 @db.Uuid
+  documentId        String                 @db.Uuid
+  workflowId        String                 @db.Uuid
+  workflowVersionId String?                @db.Uuid
+  currentStepId     String?                @db.Uuid
+  status            WorkflowInstanceStatus @default(IN_PROGRESS)
+  metadata          Json?
+  startedBy         String                 @db.Uuid
+  completedAt       DateTime?
+  cancelledAt       DateTime?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  document        Document         @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  workflow        Workflow         @relation(fields: [workflowId], references: [id], onDelete: Restrict)
+  workflowVersion WorkflowVersion? @relation(fields: [workflowVersionId], references: [id], onDelete: SetNull)
+  currentStep     WorkflowStep?    @relation("CurrentWorkflowStep", fields: [currentStepId], references: [id], onDelete: SetNull)
+  starter         User             @relation(fields: [startedBy], references: [id], onDelete: Restrict)
+  tasks           WorkflowTask[]
+  history         WorkflowHistoryEvent[]
+  notifications   WorkflowNotification[]
+
+  @@index([organizationId, status, createdAt])
+  @@index([organizationId, documentId])
+  @@index([workflowId, status])
+}
+
+model WorkflowTask {
+  id                   String             @id @default(uuid()) @db.Uuid
+  organizationId       String             @db.Uuid
+  workflowInstanceId   String             @db.Uuid
+  documentId           String             @db.Uuid
+  stepId               String             @db.Uuid
+  assignedDepartmentId String             @db.Uuid
+  assignedRoleId       String?            @db.Uuid
+  assignedUserId       String?            @db.Uuid
+  delegatedFromUserId  String?            @db.Uuid
+  status               WorkflowTaskStatus @default(PENDING)
+  dueAt                DateTime
+  reminderAt           DateTime?
+  escalatedAt          DateTime?
+  receivedAt           DateTime?
+  completedAt          DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  organization       Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workflowInstance   WorkflowInstance @relation(fields: [workflowInstanceId], references: [id], onDelete: Cascade)
+  document           Document         @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  step               WorkflowStep     @relation(fields: [stepId], references: [id], onDelete: Restrict)
+  assignedDepartment Department       @relation(fields: [assignedDepartmentId], references: [id], onDelete: Restrict)
+  assignedRole       Role?            @relation(fields: [assignedRoleId], references: [id], onDelete: SetNull)
+  assignedUser       User?            @relation("WorkflowTaskAssignee", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  delegatedFromUser  User?            @relation("WorkflowTaskDelegatedFrom", fields: [delegatedFromUserId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status, dueAt])
+  @@index([organizationId, assignedDepartmentId, status])
+  @@index([organizationId, assignedUserId, status])
+  @@index([workflowInstanceId, createdAt])
+}
+
+model WorkflowHistoryEvent {
+  id                 String                @id @default(uuid()) @db.Uuid
+  organizationId     String                @db.Uuid
+  workflowInstanceId String                @db.Uuid
+  documentId         String                @db.Uuid
+  actorUserId        String                @db.Uuid
+  actorDepartmentId  String?               @db.Uuid
+  action             WorkflowHistoryAction
+  comments           String?
+  previousStepId     String?               @db.Uuid
+  nextStepId         String?               @db.Uuid
+  metadata           Json?
+  createdAt          DateTime              @default(now())
+
+  organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workflowInstance WorkflowInstance @relation(fields: [workflowInstanceId], references: [id], onDelete: Cascade)
+  document         Document         @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  actor            User             @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+  actorDepartment  Department?      @relation(fields: [actorDepartmentId], references: [id], onDelete: SetNull)
+  previousStep     WorkflowStep?    @relation("PreviousWorkflowStep", fields: [previousStepId], references: [id], onDelete: SetNull)
+  nextStep         WorkflowStep?    @relation("NextWorkflowStep", fields: [nextStepId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, documentId, createdAt])
+  @@index([workflowInstanceId, createdAt])
+  @@index([actorUserId, createdAt])
+}
+
+model WorkflowDelegation {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  fromUserId     String   @db.Uuid
+  toUserId       String   @db.Uuid
+  startsAt       DateTime
+  endsAt         DateTime
+  active         Boolean  @default(true)
+  reason         String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  fromUser     User         @relation("DelegationFromUser", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser       User         @relation("DelegationToUser", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, fromUserId, active])
+  @@index([organizationId, toUserId, active])
+}
+
+model WorkflowNotification {
+  id                 String                   @id @default(uuid()) @db.Uuid
+  organizationId     String                   @db.Uuid
+  userId             String?                  @db.Uuid
+  departmentId       String?                  @db.Uuid
+  documentId         String?                  @db.Uuid
+  workflowInstanceId String?                  @db.Uuid
+  type               WorkflowNotificationType
+  title              String
+  message            String
+  readAt             DateTime?
+  createdAt          DateTime                 @default(now())
+
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user             User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  department       Department?       @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  document         Document?         @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  workflowInstance WorkflowInstance? @relation(fields: [workflowInstanceId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, userId, readAt])
+  @@index([organizationId, departmentId, readAt])
+  @@index([workflowInstanceId, createdAt])
 }

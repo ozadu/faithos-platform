@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
   DocumentRouteAction,
@@ -15,6 +16,7 @@ import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUser } from '../common/authenticated-user';
 import { RequestMetadata } from '../common/request-metadata.decorator';
 import { PrismaService } from '../database/prisma.service';
+import { WorkflowsService } from '../workflows/workflows.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { DocumentSearchDto } from './dto/document-search.dto';
 import {
@@ -65,6 +67,7 @@ export class DocumentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    @Optional() private readonly workflows?: WorkflowsService,
   ) {}
 
   async list(principal: AuthenticatedUser, query: DocumentSearchDto) {
@@ -355,7 +358,11 @@ export class DocumentsService {
       ...metadata,
     });
 
-    return document;
+    await this.workflows?.startForDocument(principal, id, {
+      ...(input.note ? { comments: input.note } : {}),
+    });
+
+    return this.findDocument(principal.organizationId, id);
   }
 
   async forward(

@@ -7,7 +7,7 @@
     "dev": "nest start --watch",
     "lint": "eslint src test",
     "start": "node dist/main.js",
-    "test": "tsx --test test/auth.service.test.ts test/sessions.service.test.ts test/users.service.test.ts test/tenant-scope.service.test.ts test/documents.service.test.ts test/attachments.service.test.ts",
+    "test": "tsx --test test/auth.service.test.ts test/sessions.service.test.ts test/users.service.test.ts test/tenant-scope.service.test.ts test/documents.service.test.ts test/attachments.service.test.ts test/workflows.service.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

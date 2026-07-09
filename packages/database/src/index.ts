@@ -8,6 +8,11 @@ export {
   Prisma,
   PrismaClient,
   UserStatus,
+  WorkflowConditionOperator,
+  WorkflowHistoryAction,
+  WorkflowInstanceStatus,
+  WorkflowNotificationType,
+  WorkflowTaskStatus,
 } from '@prisma/client';
 
 export type {
@@ -23,4 +28,13 @@ export type {
   RolePermission,
   Session,
   User,
+  Workflow,
+  WorkflowAssignment,
+  WorkflowDelegation,
+  WorkflowHistoryEvent,
+  WorkflowInstance,
+  WorkflowNotification,
+  WorkflowStep,
+  WorkflowTask,
+  WorkflowVersion,
 } from '@prisma/client';
