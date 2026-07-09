@@ -36,7 +36,7 @@ async function bootstrap(): Promise<void> {
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('FaithOS API')
-    .setDescription('FaithOS identity foundation API')
+    .setDescription('FaithOS identity and DocRoute API')
     .setVersion('1.0')
     .addBearerAuth()
     .build();
