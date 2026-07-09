@@ -1,0 +1,33 @@
+{
+  "name": "@faithos/api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "nest build",
+    "dev": "nest start --watch",
+    "lint": "eslint src test",
+    "start": "node dist/main.js",
+    "test": "tsx --test test/auth.service.test.ts test/sessions.service.test.ts test/users.service.test.ts test/tenant-scope.service.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@faithos/database": "workspace:*",
+    "@nestjs/common": "11.1.27",
+    "@nestjs/core": "11.1.27",
+    "@nestjs/jwt": "11.0.2",
+    "@nestjs/platform-express": "11.1.27",
+    "@nestjs/swagger": "11.4.5",
+    "argon2": "0.44.0",
+    "class-transformer": "0.5.1",
+    "class-validator": "0.15.1",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  },
+  "devDependencies": {
+    "@faithos/config": "workspace:*",
+    "@nestjs/cli": "11.0.23",
+    "@types/node": "26.1.0",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
+  }
+}

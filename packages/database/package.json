@@ -1,0 +1,32 @@
+{
+  "name": "@faithos/database",
+  "version": "0.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "src/index.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "prisma generate && tsc -p tsconfig.json",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "lint": "eslint src",
+    "postinstall": "prisma generate",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@faithos/config": "workspace:*",
+    "@types/node": "26.1.0",
+    "argon2": "0.44.0",
+    "prisma": "6.19.1",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.1"
+  }
+}
