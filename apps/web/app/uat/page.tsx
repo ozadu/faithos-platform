@@ -5,7 +5,7 @@ import { apiBaseUrl, demoCredentials } from '../lib/api-client';
 
 const featureLinks = [
   ['Login', '/login', 'Real API login using seeded admin account'],
-  ['Dashboard', '/', 'DocRoute overview'],
+  ['Dashboard', '/dashboard', 'Sprint 4 operational workspace'],
   ['Document List', '/documents', 'GET /documents'],
   ['Draft Documents', '/drafts', 'GET /drafts'],
   ['Inbox', '/inbox', 'GET /inbox'],
@@ -53,6 +53,17 @@ const workflowLinks = [
   ],
   ['Delegation', '/workflow-delegations', 'Temporary task delegation'],
   ['SLA Engine', '/workflow-sla', 'Mark overdue tasks and escalate'],
+] as const;
+
+const sprint4Links = [
+  ['Operational Dashboard', '/dashboard', 'Pending work and status overview'],
+  ['Executive Dashboard', '/dashboard/executive', 'Leadership metrics'],
+  ['Department Dashboard', '/dashboard/department', 'Current department load'],
+  ['Notification Center', '/notifications', 'Read/delete/filter notifications'],
+  ['My Work', '/my-work', 'Tasks, approvals, returns, overdue items'],
+  ['Pending Approvals', '/pending-approvals', 'Approval queue'],
+  ['Workflow Notifications', '/workflow-notifications', 'Legacy records view'],
+  ['Mailpit', 'http://localhost:8025', 'Verify dev SMTP emails'],
 ] as const;
 
 export default function UatDashboardPage() {
@@ -120,10 +131,30 @@ export default function UatDashboardPage() {
         </div>
       </section>
 
+      <section className="panel">
+        <h2>Sprint 4 Notifications & Dashboard</h2>
+        <div className="uat-grid">
+          {sprint4Links.map(([label, href, description]) => {
+            const external = href.startsWith('http');
+            return (
+              <Link
+                className="uat-link"
+                href={href}
+                key={label}
+                target={external ? '_blank' : undefined}
+              >
+                <strong>{label}</strong>
+                <span>{description}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
       <section className="panel stack">
         <h2>Planned / not implemented yet</h2>
         <p>
-          SMS/WhatsApp delivery, OCR, full text indexing, production object
+          SMS/WhatsApp/push delivery, OCR, full text indexing, production object
           storage, and advanced visual rule authoring are planned for future
           sprints.
         </p>

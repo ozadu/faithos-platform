@@ -177,12 +177,14 @@ export type WorkflowHistoryEvent = {
 
 export type WorkflowNotification = {
   createdAt: string;
+  department?: Department | null;
   document?: Pick<DocumentRecord, 'id' | 'referenceNumber' | 'title'> | null;
   id: string;
   message: string;
   readAt?: string | null;
   title: string;
   type: string;
+  user?: DemoUser | null;
   workflowInstance?: { id: string; status: string } | null;
 };
 
@@ -196,6 +198,87 @@ export type WorkflowDelegation = {
   startsAt: string;
   toUser?: DemoUser | null;
   toUserId: string;
+};
+
+export type ActivityItem = {
+  action: string;
+  actor?: DemoUser | null;
+  actorDepartment?: Department | null;
+  comments?: string | null;
+  createdAt: string;
+  document?: Pick<DocumentRecord, 'id' | 'referenceNumber' | 'title'>;
+  id: string;
+};
+
+export type DashboardSummary = {
+  activity: ActivityItem[];
+  counts: {
+    draftDocuments: number;
+    inboxDocuments: number;
+    myPendingTasks: number;
+    overdueWorkflows: number;
+    unreadNotifications: number;
+  };
+  quickActions: Array<{ href: string; label: string }>;
+  recentDocuments: Array<
+    Pick<
+      DocumentRecord,
+      'id' | 'priority' | 'referenceNumber' | 'status' | 'title' | 'updatedAt'
+    >
+  >;
+  recentWorkflows: Array<{
+    completedAt?: string | null;
+    document?: Pick<DocumentRecord, 'id' | 'referenceNumber' | 'title'>;
+    id: string;
+    workflow?: Pick<Workflow, 'id' | 'name'>;
+  }>;
+};
+
+export type ExecutiveDashboard = {
+  averageCompletionHours: number;
+  departmentActivity: Array<{
+    department: Department;
+    documents: number;
+    pendingTasks: number;
+  }>;
+  highPriorityDocuments: Array<
+    Pick<
+      DocumentRecord,
+      'id' | 'priority' | 'referenceNumber' | 'status' | 'title' | 'updatedAt'
+    > & { currentDepartment?: Department | null }
+  >;
+  metrics: {
+    completedThisWeek: number;
+    overdueWorkflows: number;
+    pendingApprovals: number;
+    submittedThisWeek: number;
+    totalDocuments: number;
+  };
+};
+
+export type DepartmentDashboard = {
+  activity: ActivityItem[];
+  department: Department;
+  metrics: {
+    completedDocuments: number;
+    departmentInboxCount: number;
+    departmentPendingTasks: number;
+    overdueItems: number;
+  };
+};
+
+export type MyWorkSummary = {
+  assignedTasks: WorkflowTask[];
+  navigation: Array<{ href: string; label: string }>;
+  overdueItems: WorkflowTask[];
+  pendingApprovals: WorkflowTask[];
+  recentlyCompletedTasks: WorkflowTask[];
+  returnedDocuments: Array<
+    Pick<
+      DocumentRecord,
+      'id' | 'referenceNumber' | 'status' | 'title' | 'updatedAt'
+    >
+  >;
 };
 
 export const apiBaseUrl =

@@ -5,9 +5,12 @@ import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { CommonModule } from './common/common.module';
 import { EnvironmentModule } from './config/environment.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { DatabaseModule } from './database/database.module';
 import { DepartmentsModule } from './departments/departments.module';
 import { DocumentsModule } from './documents/documents.module';
+import { EmailModule } from './email/email.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { RolesModule } from './roles/roles.module';
@@ -19,6 +22,7 @@ import { WorkflowsModule } from './workflows/workflows.module';
   imports: [
     EnvironmentModule,
     DatabaseModule,
+    EmailModule,
     CommonModule,
     AuditModule,
     AuthModule,
@@ -27,6 +31,8 @@ import { WorkflowsModule } from './workflows/workflows.module';
     UsersModule,
     RolesModule,
     PermissionsModule,
+    NotificationsModule,
+    DashboardModule,
     DocumentsModule,
     WorkflowsModule,
   ],

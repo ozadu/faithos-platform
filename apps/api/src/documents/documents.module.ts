@@ -6,6 +6,7 @@ import { AuthModule } from '../auth/auth.module';
 import { AuditModule } from '../audit/audit.module';
 import { CommonModule } from '../common/common.module';
 import { DatabaseModule } from '../database/database.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { WorkflowsModule } from '../workflows/workflows.module';
 import { DocumentsController } from './documents.controller';
 import { DocumentsService } from './documents.service';
@@ -19,6 +20,7 @@ import { DocumentsService } from './documents.service';
     AuditModule,
     AuthModule,
     WorkflowsModule,
+    NotificationsModule,
   ],
   providers: [DocumentsService, AttachmentsService],
 })

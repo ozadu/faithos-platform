@@ -23,6 +23,13 @@ const working = [
   'Workflow SLA overdue evaluator',
   'Temporary delegation records',
   'Workflow notification records',
+  'Notification Center list, filters, read/read-all, delete, and record links',
+  'Mailpit-backed development email delivery for workflow/document events',
+  'Operational dashboard widgets and quick actions',
+  'Executive dashboard metrics',
+  'Department dashboard filtered to the current user department',
+  'My Work aggregation for tasks, approvals, returns, overdue items, and completed tasks',
+  'Navigation badge counts for Inbox, My Tasks, Notifications, and Pending Approvals',
 ];
 
 const partial = [
@@ -30,11 +37,12 @@ const partial = [
   'User and department update APIs exist; UAT pages expose create/delete and visible records, with detailed edit flows left for admin UX hardening.',
   'Attachment download uses authenticated browser fetch on document detail; opening raw download URLs directly still requires an auth header.',
   'Workflow Builder exposes practical step/version editing but not a drag-and-drop visual canvas.',
-  'Workflow notifications are database/API records only; email sending, SMS, and WhatsApp are intentionally out of scope.',
+  'Email notifications are development SMTP/Mailpit only; production provider delivery is future infrastructure.',
+  'Dashboard metrics are operational summaries, not a historical analytics warehouse.',
 ];
 
 const missingBackend = [
-  'SMS and WhatsApp notification delivery',
+  'SMS, WhatsApp, and push notification delivery',
   'Drag-and-drop workflow rule authoring',
   'Production object storage',
   'OCR and full-text indexing',
@@ -48,6 +56,7 @@ export default function UatReportPage() {
         <h1>UAT Report</h1>
         <p>
           Current browser-testability status for implemented FaithOS features.
+          This report includes Sprint 4 Notifications & Dashboard exposure.
         </p>
       </div>
       <section className="panel">
