@@ -18,6 +18,7 @@
     "db:migrate": "pnpm --filter @faithos/database db:migrate",
     "db:migrate:deploy": "pnpm --filter @faithos/database db:migrate:deploy",
     "db:seed": "pnpm --filter @faithos/database db:seed",
+    "db:seed:demo": "pnpm db:seed",
     "db:studio": "pnpm --filter @faithos/database db:studio",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

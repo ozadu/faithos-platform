@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { FormEvent, useEffect, useState } from 'react';
 
 import {
   apiFetch,
@@ -18,10 +19,18 @@ type LoginResponse = {
 };
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [next, setNext] = useState('/dashboard');
   const [email, setEmail] = useState(demoCredentials.email);
   const [password, setPassword] = useState(demoCredentials.password);
   const [message, setMessage] = useState('Use the seeded demo administrator.');
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setNext(params.get('next') ?? '/dashboard');
+    setMessage(params.get('message') ?? 'Use the seeded demo administrator.');
+  }, []);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -34,8 +43,13 @@ export default function LoginPage() {
       });
       saveSession(response.data);
       setMessage(`Logged in as ${response.data.user.email}`);
+      router.push(next.startsWith('/') ? next : '/dashboard');
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Login failed');
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Login failed. Please check the email and password.',
+      );
     } finally {
       setBusy(false);
     }
@@ -84,6 +98,9 @@ export default function LoginPage() {
           </button>
           <Link className="button secondary" href="/uat">
             Back to UAT Dashboard
+          </Link>
+          <Link className="button secondary" href="/forgot-password">
+            Forgot Password
           </Link>
         </div>
         <p className="full">{message}</p>

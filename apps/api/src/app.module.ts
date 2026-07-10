@@ -16,6 +16,7 @@ import { OrganizationsModule } from './organizations/organizations.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { ReportsModule } from './reports/reports.module';
 import { RolesModule } from './roles/roles.module';
+import { SetupModule } from './setup/setup.module';
 import { UsersModule } from './users/users.module';
 import { WorkflowsModule } from './workflows/workflows.module';
 
@@ -35,6 +36,7 @@ import { WorkflowsModule } from './workflows/workflows.module';
     RolesModule,
     PermissionsModule,
     ReportsModule,
+    SetupModule,
     NotificationsModule,
     DashboardModule,
     DocumentsModule,
