@@ -23,6 +23,7 @@ import {
 } from '../common/request-metadata.decorator';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto, ResetPasswordDto } from './dto/password-reset.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
@@ -70,6 +71,34 @@ export class AuthController {
   ) {
     await this.auth.logout(body.refreshToken, metadata);
     return apiResponse('Logout successful', null);
+  }
+
+  @Post('forgot-password')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Request a password reset email without revealing account status',
+  })
+  async forgotPassword(
+    @Body() body: ForgotPasswordDto,
+    @CurrentRequestMetadata() metadata: RequestMetadata,
+  ) {
+    return apiResponse(
+      'If an active account exists, reset instructions will be sent.',
+      await this.auth.forgotPassword(body.email, metadata),
+    );
+  }
+
+  @Post('reset-password')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Reset a password using a valid reset token' })
+  async resetPassword(
+    @Body() body: ResetPasswordDto,
+    @CurrentRequestMetadata() metadata: RequestMetadata,
+  ) {
+    return apiResponse(
+      'Password reset successful',
+      await this.auth.resetPassword(body.token, body.password, metadata),
+    );
   }
 
   @Get('me')

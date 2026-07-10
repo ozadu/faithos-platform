@@ -2,10 +2,12 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   Param,
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -25,6 +27,7 @@ import {
   CurrentRequestMetadata,
   RequestMetadata,
 } from '../common/request-metadata.decorator';
+import { RawResponse } from '../common/raw-response.decorator';
 import { AdminService } from './admin.service';
 import {
   CreateAdminDepartmentDto,
@@ -53,6 +56,14 @@ import {
   CreateAdminUserDto,
   UpdateAdminUserDto,
 } from './dto/admin-user.dto';
+import {
+  AdminUserImportDto,
+  AdminUserImportPreviewDto,
+} from './dto/admin-user-import.dto';
+
+type HeaderResponse = {
+  setHeader(name: string, value: string): void;
+};
 
 @ApiTags('Admin')
 @ApiBearerAuth()
@@ -163,6 +174,48 @@ export class AdminController {
     return apiResponse(
       'Admin users retrieved',
       await this.admin.users(user, query),
+    );
+  }
+
+  @Get('users/import-template.csv')
+  @RequirePermissions('admin.users.manage')
+  @RawResponse()
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  @ApiOperation({ summary: 'Download CSV user import template' })
+  async userImportTemplate(
+    @Res({ passthrough: true }) response: HeaderResponse,
+  ) {
+    response.setHeader(
+      'Content-Disposition',
+      'attachment; filename="faithos-user-import-template.csv"',
+    );
+    return this.admin.userImportTemplateCsv();
+  }
+
+  @Post('users/import-preview')
+  @RequirePermissions('admin.users.manage')
+  @ApiOperation({ summary: 'Validate and preview pilot user CSV import' })
+  async previewUserImport(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() input: AdminUserImportPreviewDto,
+  ) {
+    return apiResponse(
+      'User import preview generated',
+      await this.admin.previewUserImport(user, input),
+    );
+  }
+
+  @Post('users/import')
+  @RequirePermissions('admin.users.manage')
+  @ApiOperation({ summary: 'Import pilot users from a validated CSV payload' })
+  async importUsers(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() input: AdminUserImportDto,
+    @CurrentRequestMetadata() metadata: RequestMetadata,
+  ) {
+    return apiResponse(
+      'User import completed',
+      await this.admin.importUsers(user, input, metadata),
     );
   }
 
@@ -454,6 +507,26 @@ export class AdminController {
     return apiResponse(
       'Pilot readiness checklist retrieved',
       await this.admin.pilotReadiness(user),
+    );
+  }
+
+  @Get('production-readiness')
+  @RequirePermissions('admin.systemSettings.manage')
+  @ApiOperation({ summary: 'Get safe production readiness checklist' })
+  async productionReadiness(@CurrentUser() user: AuthenticatedUser) {
+    return apiResponse(
+      'Production readiness checklist retrieved',
+      await this.admin.productionReadiness(user),
+    );
+  }
+
+  @Get('system-health')
+  @RequirePermissions('admin.systemSettings.manage')
+  @ApiOperation({ summary: 'Get safe system health summary' })
+  async systemHealth() {
+    return apiResponse(
+      'System health retrieved',
+      await this.admin.systemHealth(),
     );
   }
 }

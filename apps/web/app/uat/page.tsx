@@ -115,6 +115,40 @@ const sprint6Links = [
   ['Swagger Documentation', `${apiBaseUrl}/api/docs`, 'Admin endpoint docs'],
 ] as const;
 
+const sprint7Links = [
+  ['/setup', 'Setup Wizard', 'GET /setup/status and setup step review'],
+  ['/forgot-password', 'Forgot Password', 'Mailpit-backed reset request'],
+  ['/reset-password', 'Reset Password', 'Reset token flow from Mailpit'],
+  [
+    '/admin/users/import',
+    'CSV User Import',
+    'Preview, validate, skip duplicates, and import pilot users',
+  ],
+  [
+    '/admin/production-readiness',
+    'Production Readiness',
+    'Safe launch checklist without secret exposure',
+  ],
+  [
+    '/admin/backup-restore',
+    'Backup & Restore',
+    'Internal backup, restore, volume, and rollback guidance',
+  ],
+  [
+    '/admin/deployment-guide',
+    'Deployment Guide',
+    'Docker, env vars, migrations, seed, health, and troubleshooting',
+  ],
+  [
+    '/admin/system-health',
+    'System Health',
+    'API, database, Redis, Mailpit, environment, and version status',
+  ],
+  ['/help', 'Pilot User Manual', 'Non-technical staff onboarding guide'],
+  ['Swagger Documentation', `${apiBaseUrl}/api/docs`, 'Sprint 7 endpoint docs'],
+  ['Mailpit', 'http://localhost:8025', 'Password reset and invite emails'],
+] as const;
+
 export default function UatDashboardPage() {
   return (
     <section className="stack">
@@ -123,7 +157,7 @@ export default function UatDashboardPage() {
         <h1>FaithOS UAT Dashboard</h1>
         <p>
           One clickable surface for manually testing every implemented FaithOS
-          feature through Sprint 6.
+          feature through Sprint 7.
         </p>
       </div>
 
@@ -224,6 +258,26 @@ export default function UatDashboardPage() {
         <h2>Sprint 6 Admin Configuration & Pilot Readiness</h2>
         <div className="uat-grid">
           {sprint6Links.map(([label, href, description]) => {
+            const external = href.startsWith('http');
+            return (
+              <Link
+                className="uat-link"
+                href={href}
+                key={label}
+                target={external ? '_blank' : undefined}
+              >
+                <strong>{label}</strong>
+                <span>{description}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="panel">
+        <h2>Sprint 7 Pilot Hardening & Onboarding</h2>
+        <div className="uat-grid">
+          {sprint7Links.map(([href, label, description]) => {
             const external = href.startsWith('http');
             return (
               <Link

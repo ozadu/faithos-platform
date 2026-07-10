@@ -25,14 +25,40 @@ import { AuthRequired } from './auth-required';
 
 const adminLinks = [
   [
+    '/setup',
+    'Setup Wizard',
+    'Guided first-run checklist for new organization administrators',
+  ],
+  [
     '/admin/organization',
     'Organization Settings',
-    'Tenant profile and branding',
+    'Tenant profile, contact details, and pilot identity',
   ],
-  ['/admin/departments', 'Departments', 'Department structure and heads'],
-  ['/admin/users', 'Users', 'People, roles, activation, and departments'],
-  ['/admin/roles', 'Roles', 'RBAC roles and permission assignment'],
-  ['/admin/permissions', 'Permissions', 'Grouped permission catalog'],
+  [
+    '/admin/departments',
+    'Departments',
+    'Teams that send, receive, and approve documents',
+  ],
+  [
+    '/admin/users',
+    'Users',
+    'Pilot staff accounts, roles, activation, and departments',
+  ],
+  [
+    '/admin/users/import',
+    'CSV User Import',
+    'Bulk onboarding with preview, validation, and duplicate skipping',
+  ],
+  [
+    '/admin/roles',
+    'Roles',
+    'Permission groups used to control what staff can access',
+  ],
+  [
+    '/admin/permissions',
+    'Permissions',
+    'Read-only catalog of system capabilities and role mapping',
+  ],
   [
     '/admin/document-types',
     'Document Types',
@@ -46,6 +72,26 @@ const adminLinks = [
   ['/admin/system-settings', 'System Settings', 'Safe pilot configuration'],
   ['/admin/audit-log', 'Audit Log', 'Administrative activity trail'],
   ['/admin/pilot-readiness', 'Pilot Readiness', 'Pilot launch checklist'],
+  [
+    '/admin/production-readiness',
+    'Production Readiness',
+    'Safe go-live checklist with no secret exposure',
+  ],
+  [
+    '/admin/backup-restore',
+    'Backup & Restore',
+    'Internal operational guidance for pilot data protection',
+  ],
+  [
+    '/admin/deployment-guide',
+    'Deployment Guide',
+    'Docker, migrations, seed, health checks, and troubleshooting',
+  ],
+  [
+    '/admin/system-health',
+    'System Health',
+    'Safe health summary for API, DB, Redis, Mailpit, and environment',
+  ],
 ] as const;
 
 export function AdminDashboard() {
