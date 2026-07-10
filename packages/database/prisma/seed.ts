@@ -52,6 +52,21 @@ const permissions = [
   ],
   ['reports.view.department', 'View department-scoped reports', 'reports'],
   ['reports.view.self', 'View self-scoped reporting data', 'reports'],
+  ['admin.access', 'Access admin configuration area', 'admin'],
+  ['admin.organization.manage', 'Manage organization settings', 'admin'],
+  ['admin.departments.manage', 'Manage departments', 'admin'],
+  ['admin.users.manage', 'Manage users', 'admin'],
+  ['admin.roles.manage', 'Manage roles', 'admin'],
+  ['admin.permissions.view', 'View permission catalog', 'admin'],
+  ['admin.documentTypes.manage', 'Manage document types', 'admin'],
+  [
+    'admin.workflowAssignments.manage',
+    'Manage workflow assignment configuration',
+    'admin',
+  ],
+  ['admin.systemSettings.manage', 'Manage safe system settings', 'admin'],
+  ['admin.audit.view', 'View administrative audit log', 'admin'],
+  ['admin.pilotReadiness.view', 'View pilot readiness checklist', 'admin'],
 ] as const;
 
 async function upsertSystemRole(
@@ -77,14 +92,26 @@ async function upsertSystemRole(
 async function main(): Promise<void> {
   const organization = await prisma.organization.upsert({
     create: {
+      address: 'FaithOS Demo Campus, Lagos',
       country: 'NG',
+      defaultCurrency: 'NGN',
       email: 'hello@demo.faithos.local',
       name: 'FaithOS Demo Organization',
+      phone: '+234-000-000-0000',
+      shortName: 'FaithOS Demo',
       slug: 'faithos-demo',
       status: OrganizationStatus.ACTIVE,
       timezone: 'Africa/Lagos',
+      website: 'https://faithos.local',
     },
-    update: {},
+    update: {
+      address: 'FaithOS Demo Campus, Lagos',
+      defaultCurrency: 'NGN',
+      phone: '+234-000-000-0000',
+      shortName: 'FaithOS Demo',
+      timezone: 'Africa/Lagos',
+      website: 'https://faithos.local',
+    },
     where: { slug: 'faithos-demo' },
   });
 
@@ -102,6 +129,10 @@ async function main(): Promise<void> {
     'System Administrator',
     'Full access to the FaithOS identity foundation.',
   );
+  const superAdmin = await upsertSystemRole(
+    'Super Admin',
+    'Full system administration access across FaithOS configuration.',
+  );
   await upsertSystemRole(
     'Organization Administrator',
     'Administrative access within an organization.',
@@ -118,18 +149,31 @@ async function main(): Promise<void> {
     })),
     skipDuplicates: true,
   });
+  await prisma.rolePermission.createMany({
+    data: permissionRecords.map((permission) => ({
+      permissionId: permission.id,
+      roleId: superAdmin.id,
+    })),
+    skipDuplicates: true,
+  });
 
   const organizationAdministrator = await prisma.role.upsert({
     create: {
-      description: 'Full identity administration within the demo organization.',
+      active: true,
+      description:
+        'Full administration and pilot configuration within the demo organization.',
       isSystem: false,
-      name: 'Organization Administrator',
+      name: 'Organization Admin',
       organizationId: organization.id,
     },
-    update: {},
+    update: {
+      active: true,
+      description:
+        'Full administration and pilot configuration within the demo organization.',
+    },
     where: {
       organizationId_name: {
-        name: 'Organization Administrator',
+        name: 'Organization Admin',
         organizationId: organization.id,
       },
     },
@@ -144,14 +188,21 @@ async function main(): Promise<void> {
 
   const departments = await Promise.all(
     [
-      ['Executive Office', 'Leadership review and approvals'],
-      ['Finance', 'Budgeting, procurement, and financial controls'],
-      ['Operations', 'Internal operations and service delivery'],
-      ['People', 'Human resources and staff administration'],
-    ].map(([name, description]) =>
+      ['Executive Office', 'EXEC', 'Leadership review and approvals'],
+      ['Finance', 'FIN', 'Budgeting, procurement, and financial controls'],
+      ['Operations', 'OPS', 'Internal operations and service delivery'],
+      ['People', 'PPL', 'Human resources and staff administration'],
+      ['Communications', 'COMMS', 'Announcements and church communication'],
+    ].map(([name, code, description]) =>
       prisma.department.upsert({
-        create: { description, name, organizationId: organization.id },
-        update: { description },
+        create: {
+          active: true,
+          code,
+          description,
+          name,
+          organizationId: organization.id,
+        },
+        update: { active: true, code, description },
         where: {
           organizationId_name: {
             name,
@@ -166,6 +217,7 @@ async function main(): Promise<void> {
     financeDepartment,
     operationsDepartment,
     peopleDepartment,
+    communicationsDepartment,
   ] = departments;
 
   const adminUser = await prisma.user.upsert({
@@ -207,6 +259,12 @@ async function main(): Promise<void> {
         'People',
         'Partner',
         peopleDepartment.id,
+      ],
+      [
+        'communications.viewer@demo.faithos.local',
+        'Communications',
+        'Viewer',
+        communicationsDepartment.id,
       ],
     ].map(async ([email, firstName, lastName, departmentId]) =>
       prisma.user.upsert({
@@ -259,6 +317,11 @@ async function main(): Promise<void> {
       operationsManager: sampleUsers[1].id,
       peoplePartner: sampleUsers[2].id,
     },
+  });
+
+  await seedAdminConfiguration({
+    organizationId: organization.id,
+    permissions: permissionRecords,
   });
 
   console.log(`Seeded demo user ${DEMO_EMAIL}`);
@@ -509,6 +572,129 @@ async function seedDocuments({
         },
       });
     }
+  }
+}
+
+async function seedAdminConfiguration({
+  organizationId,
+  permissions,
+}: {
+  organizationId: string;
+  permissions: Array<{ code: string; id: string }>;
+}): Promise<void> {
+  const roleDefinitions = [
+    ['Department Head', 'Department leadership with workflow oversight'],
+    ['Staff', 'Standard staff access for document collaboration'],
+    ['Viewer', 'Read-only pilot visibility for safe review'],
+  ] as const;
+
+  for (const [name, description] of roleDefinitions) {
+    await prisma.role.upsert({
+      create: {
+        active: true,
+        description,
+        isSystem: false,
+        name,
+        organizationId,
+      },
+      update: { active: true, description },
+      where: { organizationId_name: { name, organizationId } },
+    });
+  }
+
+  const viewer = await prisma.role.findFirstOrThrow({
+    where: { name: 'Viewer', organizationId },
+  });
+  const viewerPermissionCodes = [
+    'admin.access',
+    'admin.pilotReadiness.view',
+    'documents.read',
+    'notifications.read',
+    'reports.view',
+    'reports.view.self',
+  ];
+  await prisma.rolePermission.createMany({
+    data: permissions
+      .filter((permission) => viewerPermissionCodes.includes(permission.code))
+      .map((permission) => ({
+        permissionId: permission.id,
+        roleId: viewer.id,
+      })),
+    skipDuplicates: true,
+  });
+
+  for (const documentType of [
+    ['Memo', 'MEMO', DocumentConfidentiality.INTERNAL, DocumentPriority.NORMAL],
+    [
+      'Circular',
+      'CIR',
+      DocumentConfidentiality.PUBLIC,
+      DocumentPriority.NORMAL,
+    ],
+    [
+      'Leave Request',
+      'LR',
+      DocumentConfidentiality.INTERNAL,
+      DocumentPriority.NORMAL,
+    ],
+    [
+      'Purchase Request',
+      'PR',
+      DocumentConfidentiality.CONFIDENTIAL,
+      DocumentPriority.HIGH,
+    ],
+    [
+      'Asset Request',
+      'AR',
+      DocumentConfidentiality.INTERNAL,
+      DocumentPriority.NORMAL,
+    ],
+    [
+      'Travel Request',
+      'TR',
+      DocumentConfidentiality.INTERNAL,
+      DocumentPriority.NORMAL,
+    ],
+  ] as const) {
+    const [name, referencePrefix, defaultConfidentiality, defaultPriority] =
+      documentType;
+    await prisma.documentType.upsert({
+      create: {
+        active: true,
+        defaultConfidentiality,
+        defaultPriority,
+        description: `${name} pilot document type`,
+        name,
+        organizationId,
+        referencePrefix,
+      },
+      update: {
+        active: true,
+        defaultConfidentiality,
+        defaultPriority,
+        referencePrefix,
+      },
+      where: { organizationId_name: { name, organizationId } },
+    });
+  }
+
+  const systemSettings = {
+    allowedAttachmentTypes: ['pdf', 'docx', 'xlsx', 'pptx', 'jpg', 'png'],
+    brandingName: 'FaithOS',
+    brandingSubtitle: 'Pilot-ready document routing and workflow',
+    defaultSlaDays: 3,
+    emailNotificationsEnabled: true,
+    maintenanceMode: false,
+    maxAttachmentSizeBytes: 10 * 1024 * 1024,
+    referenceNumberFormat: 'DOC-YYYY-000001',
+  };
+
+  for (const [key, value] of Object.entries(systemSettings)) {
+    await prisma.systemSetting.upsert({
+      create: { key, organizationId, value },
+      update: { value },
+      where: { organizationId_key: { key, organizationId } },
+    });
   }
 }
 
