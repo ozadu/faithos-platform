@@ -24,6 +24,7 @@ export type {
   DocumentTimelineEvent,
   DocumentType,
   Organization,
+  PasswordResetToken,
   Permission,
   Role,
   RolePermission,

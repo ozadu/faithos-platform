@@ -77,6 +77,18 @@ nav a:hover {
   background: rgb(255 255 255 / 0.12);
 }
 
+.nav-button {
+  background: transparent;
+  border-radius: 0.75rem;
+  color: #f9fafb;
+  padding: 0.7rem 0.85rem;
+  text-align: left;
+}
+
+.nav-button:hover {
+  background: rgb(255 255 255 / 0.12);
+}
+
 .nav-section {
   color: #cfd6df;
   display: block;

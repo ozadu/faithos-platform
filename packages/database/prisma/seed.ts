@@ -67,6 +67,13 @@ const permissions = [
   ['admin.systemSettings.manage', 'Manage safe system settings', 'admin'],
   ['admin.audit.view', 'View administrative audit log', 'admin'],
   ['admin.pilotReadiness.view', 'View pilot readiness checklist', 'admin'],
+  ['admin.setup.manage', 'Manage first-run setup wizard', 'admin'],
+  [
+    'admin.productionReadiness.view',
+    'View production readiness checklist',
+    'admin',
+  ],
+  ['admin.systemHealth.view', 'View safe system health status', 'admin'],
 ] as const;
 
 async function upsertSystemRole(

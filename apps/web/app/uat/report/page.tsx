@@ -46,6 +46,18 @@ const working = [
   'Safe system settings view/update without exposing secrets',
   'Administrative audit log for Sprint 6 admin actions',
   'Pilot readiness checklist with linked remediation pages',
+  'First-run setup wizard with setup status and reviewed-step tracking',
+  'Friendly expired-session handling with refresh attempt and login redirect',
+  'Logout action that revokes refresh token session and clears browser auth state',
+  'Forgot/reset password flow using secure hashed reset tokens and Mailpit/dev email',
+  'Admin user temporary password email through Mailpit when configured',
+  'CSV user import template, preview validation, duplicate skipping, import, and audit records',
+  'Production readiness checklist with safe boolean configuration checks',
+  'Backup and restore documentation page',
+  'Deployment guide page',
+  'Pilot user manual/help page',
+  'System health page with safe API, database, Redis, Mailpit, environment, and version status',
+  'Sprint 7 navigation and UAT links',
 ];
 
 const partial = [
@@ -60,6 +72,10 @@ const partial = [
   'Sprint 6 admin pages are form-based pilot configuration screens, not a polished enterprise admin console.',
   'Maintenance mode is stored as a safe placeholder setting; enforcement is planned for a later operational hardening sprint.',
   'System settings intentionally exclude JWT, SMTP passwords, database URLs, and other secrets.',
+  'Password reset and temporary password email delivery use development SMTP/Mailpit only.',
+  'CSV user import reads the file in the browser and sends CSV text to the API; no production bulk-import worker exists yet.',
+  'Production readiness checks are boolean/placeholder pilot checks, not a full compliance engine.',
+  'System health uses lightweight TCP/database checks and does not include external monitoring integration yet.',
 ];
 
 const missingBackend = [
@@ -165,6 +181,58 @@ export default function UatReportPage() {
             Open Swagger and confirm /api/v1/admin endpoints are documented.
           </li>
         </ol>
+      </section>
+      <section className="panel">
+        <h2>Sprint 7 manual test instructions</h2>
+        <ol>
+          <li>Log in with the demo administrator account from /uat.</li>
+          <li>Open /setup and confirm setup status loads.</li>
+          <li>
+            Update organization setup fields and mark review steps complete.
+          </li>
+          <li>Open /forgot-password and submit the demo admin email.</li>
+          <li>Open Mailpit and copy the reset link or token.</li>
+          <li>
+            Open /reset-password and confirm valid/invalid token behavior.
+          </li>
+          <li>
+            Use Logout and verify the browser returns to /login with a friendly
+            message.
+          </li>
+          <li>Open /admin/users/import and download the CSV template.</li>
+          <li>
+            Preview a valid CSV, preview an invalid CSV, then import valid
+            users.
+          </li>
+          <li>
+            Confirm duplicate emails are skipped and audit entries are recorded.
+          </li>
+          <li>Open /admin/production-readiness and review incomplete items.</li>
+          <li>Open /admin/backup-restore and /admin/deployment-guide.</li>
+          <li>Open /help and confirm staff guidance is readable.</li>
+          <li>
+            Open /admin/system-health and confirm safe health statuses load.
+          </li>
+          <li>
+            Open Swagger and confirm setup, auth reset, admin import, production
+            readiness, and system health endpoints are documented.
+          </li>
+        </ol>
+      </section>
+      <section className="panel">
+        <h2>Sprint 7 known limitations and dev-only warnings</h2>
+        <ul>
+          <li>Development email uses Mailpit only.</li>
+          <li>Password reset tokens expire after 60 minutes.</li>
+          <li>No SMS, WhatsApp, or push notification recovery flow exists.</li>
+          <li>
+            No destructive demo reset API or production UI button was added.
+          </li>
+          <li>
+            Maintenance mode remains a stored placeholder setting; enforcement
+            is future work.
+          </li>
+        </ul>
       </section>
       <section className="panel">
         <h2>Broken links, runtime errors, API errors</h2>

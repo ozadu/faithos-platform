@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import {
   apiFetch,
   getAccessToken,
+  logout,
   type InboxRecord,
   type WorkflowTask,
 } from '../lib/api-client';
@@ -44,6 +45,7 @@ const navItems = [
   ['Roles', '/roles'],
   ['Permissions', '/permissions'],
   ['Health Check', '/health-check'],
+  ['Help', '/help'],
   ['UAT Report', '/uat/report'],
 ] as const;
 
@@ -51,6 +53,7 @@ type BadgeKey = NonNullable<(typeof navItems)[number][2]>;
 
 const adminItems = [
   ['Admin Dashboard', '/admin'],
+  ['Setup Wizard', '/setup'],
   ['Organization', '/admin/organization'],
   ['Departments', '/admin/departments'],
   ['Users', '/admin/users'],
@@ -61,6 +64,10 @@ const adminItems = [
   ['System Settings', '/admin/system-settings'],
   ['Audit Log', '/admin/audit-log'],
   ['Pilot Readiness', '/admin/pilot-readiness'],
+  ['Production Readiness', '/admin/production-readiness'],
+  ['Backup & Restore', '/admin/backup-restore'],
+  ['Deployment Guide', '/admin/deployment-guide'],
+  ['System Health', '/admin/system-health'],
 ] as const;
 
 export function SidebarNav() {
@@ -120,6 +127,17 @@ export function SidebarNav() {
           ))}
         </>
       ) : null}
+      <button
+        className="nav-button"
+        type="button"
+        onClick={() => {
+          void logout().finally(() => {
+            window.location.href = '/login?message=You%20have%20logged%20out';
+          });
+        }}
+      >
+        Logout
+      </button>
     </nav>
   );
 }

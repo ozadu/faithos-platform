@@ -1,7 +1,9 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
   DocumentConfidentiality,
@@ -11,11 +13,13 @@ import {
 } from '@faithos/database';
 import { hash } from 'argon2';
 import { randomBytes } from 'node:crypto';
+import { connect } from 'node:net';
 
 import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUser } from '../common/authenticated-user';
 import { RequestMetadata } from '../common/request-metadata.decorator';
 import { PrismaService } from '../database/prisma.service';
+import { EmailService } from '../email/email.service';
 import {
   CreateAdminDepartmentDto,
   UpdateAdminDepartmentDto,
@@ -43,6 +47,10 @@ import {
   CreateAdminUserDto,
   UpdateAdminUserDto,
 } from './dto/admin-user.dto';
+import {
+  AdminUserImportDto,
+  AdminUserImportPreviewDto,
+} from './dto/admin-user-import.dto';
 
 const userSelect = {
   createdAt: true,
@@ -74,11 +82,22 @@ const defaultSettings = {
   referenceNumberFormat: 'DOC-YYYY-000001',
 } satisfies Record<string, Prisma.InputJsonValue>;
 
+type ParsedUserImportRow = {
+  active: boolean;
+  departmentCode: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  roleName: string;
+  rowNumber: number;
+};
+
 @Injectable()
 export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    @Optional() private readonly email?: EmailService,
   ) {}
 
   async summary(principal: AuthenticatedUser) {
@@ -333,6 +352,7 @@ export class AdminService {
       entityType: 'User',
       newValues: { email: user.email, status: user.status },
     });
+    await this.sendTemporaryPasswordEmail(user.email, temporaryPassword);
     return { temporaryPassword, user };
   }
 
@@ -877,6 +897,218 @@ export class AdminService {
     };
   }
 
+  userImportTemplateCsv() {
+    return [
+      'firstName,lastName,email,departmentCode,roleName,active',
+      'Ada,Okafor,ada.okafor@example.org,OPS,Standard User,true',
+      'Samuel,Bello,samuel.bello@example.org,FIN,Organization Admin,true',
+    ].join('\n');
+  }
+
+  async previewUserImport(
+    principal: AuthenticatedUser,
+    input: AdminUserImportPreviewDto,
+  ) {
+    const parsed = await this.parseUserImport(principal, input);
+    return {
+      errors: parsed.errors,
+      rows: parsed.rows.slice(0, input.previewLimit ?? 50),
+      summary: {
+        duplicates: parsed.rows.filter((row) => row.status === 'duplicate')
+          .length,
+        invalid: parsed.errors.length,
+        valid: parsed.rows.filter((row) => row.status === 'valid').length,
+      },
+    };
+  }
+
+  async importUsers(
+    principal: AuthenticatedUser,
+    input: AdminUserImportDto,
+    metadata: RequestMetadata,
+  ) {
+    const parsed = await this.parseUserImport(principal, input);
+    if (parsed.errors.length > 0) {
+      throw new BadRequestException({
+        errors: parsed.errors,
+        message: 'CSV contains invalid rows. Preview and fix the file first.',
+      });
+    }
+
+    const created: Array<{
+      email: string;
+      temporaryPassword: string;
+      userId: string;
+    }> = [];
+    const skipped: Array<{ email: string; reason: string }> = [];
+
+    for (const row of parsed.rows) {
+      if (row.status === 'duplicate') {
+        skipped.push({ email: row.email, reason: 'Duplicate email skipped' });
+        continue;
+      }
+      const temporaryPassword = randomBytes(18).toString('base64url');
+      const user = await this.prisma.user.create({
+        data: {
+          email: row.email,
+          firstName: row.firstName,
+          lastName: row.lastName,
+          organizationId: principal.organizationId,
+          passwordHash: await hash(temporaryPassword),
+          status: row.active ? UserStatus.ACTIVE : UserStatus.INVITED,
+          ...(row.departmentId ? { departmentId: row.departmentId } : {}),
+          ...(row.roleId ? { roleId: row.roleId } : {}),
+        },
+        select: userSelect,
+      });
+      await this.record(principal, metadata, {
+        action: 'admin.user.imported',
+        entityId: user.id,
+        entityType: 'User',
+        newValues: { email: user.email, source: 'csv' },
+      });
+      await this.sendTemporaryPasswordEmail(user.email, temporaryPassword);
+      created.push({
+        email: user.email,
+        temporaryPassword,
+        userId: user.id,
+      });
+    }
+
+    await this.record(principal, metadata, {
+      action: 'admin.users.import.completed',
+      entityType: 'User',
+      newValues: {
+        created: created.length,
+        skipped: skipped.length,
+      },
+    });
+
+    return { created, skipped };
+  }
+
+  async productionReadiness(principal: AuthenticatedUser) {
+    const [organization, adminCount] = await Promise.all([
+      this.organization(principal),
+      this.prisma.user.count({
+        where: {
+          deletedAt: null,
+          organizationId: principal.organizationId,
+          role: {
+            rolePermissions: {
+              some: { permission: { code: 'admin.access' } },
+            },
+          },
+          status: UserStatus.ACTIVE,
+        },
+      }),
+    ]);
+
+    const checks = [
+      this.check(
+        'JWT secret configured',
+        Boolean(process.env.JWT_SECRET && process.env.JWT_REFRESH_SECRET),
+        'JWT secrets appear present; values are never exposed.',
+        '/admin/system-settings',
+      ),
+      this.check(
+        'Database URL configured',
+        Boolean(process.env.DATABASE_URL),
+        'DATABASE_URL appears present.',
+        '/admin/deployment-guide',
+      ),
+      this.check(
+        'SMTP provider configured',
+        Boolean(process.env.SMTP_HOST && process.env.SMTP_PORT),
+        'Pilot defaults use Mailpit; production requires a real SMTP provider.',
+        '/admin/deployment-guide',
+      ),
+      this.check(
+        'File storage configured',
+        true,
+        'Local upload storage is configured for pilot. External storage is future work.',
+        '/admin/backup-restore',
+      ),
+      this.check(
+        'Backup strategy documented',
+        true,
+        'Backup and restore guidance is available in the admin documentation.',
+        '/admin/backup-restore',
+      ),
+      this.check(
+        'Admin account confirmed',
+        adminCount > 0,
+        `${adminCount} active administrator account(s) found.`,
+        '/admin/users',
+      ),
+      this.check(
+        'Demo/test data removed or reviewed',
+        !organization.email.endsWith('.local'),
+        'Demo-local addresses should be reviewed before production.',
+        '/uat/report',
+      ),
+      this.check(
+        'HTTPS/domain configured',
+        Boolean(process.env.WEB_URL?.startsWith('https://')),
+        'Set WEB_URL to a production HTTPS domain before launch.',
+        '/admin/deployment-guide',
+      ),
+      this.check(
+        'Environment variables reviewed',
+        Boolean(process.env.NODE_ENV),
+        'Environment name is available; review all deployment variables.',
+        '/admin/system-health',
+      ),
+      this.check(
+        'Maintenance mode policy reviewed',
+        true,
+        'Maintenance mode is stored as a placeholder setting; enforcement is future work.',
+        '/admin/system-settings',
+      ),
+      this.check(
+        'Error logging/monitoring configured',
+        false,
+        'External error monitoring is not configured in this pilot build.',
+        '/admin/system-health',
+      ),
+      this.check(
+        'Privacy/data retention policy reviewed',
+        false,
+        'Add organization-specific privacy and retention procedures before production.',
+        '/admin/backup-restore',
+      ),
+    ];
+
+    return { complete: checks.every((check) => check.complete), items: checks };
+  }
+
+  async systemHealth() {
+    const [database, redis, mailpit] = await Promise.all([
+      this.checkDatabase(),
+      this.checkTcpUrl(process.env.REDIS_URL),
+      this.checkTcpHost(process.env.SMTP_HOST, process.env.SMTP_PORT),
+    ]);
+
+    return {
+      api: { healthy: true, message: 'API process is responding.' },
+      appVersion: process.env.npm_package_version ?? '0.0.0',
+      database,
+      environment: process.env.NODE_ENV ?? 'development',
+      mailpit: {
+        ...mailpit,
+        message: mailpit.healthy
+          ? 'SMTP endpoint is reachable.'
+          : 'SMTP/Mailpit endpoint is not reachable from the API container.',
+      },
+      recentApiErrors: [],
+      redis,
+      web: {
+        healthy: true,
+        message: 'Web status is verified by the browser health route.',
+      },
+    };
+  }
+
   private async setUserStatus(
     principal: AuthenticatedUser,
     id: string,
@@ -998,6 +1230,216 @@ export class AdminService {
           organizationId: principal.organizationId,
         },
       },
+    });
+  }
+
+  private async parseUserImport(
+    principal: AuthenticatedUser,
+    input: AdminUserImportDto,
+  ) {
+    if (!input.fileName.toLowerCase().endsWith('.csv')) {
+      throw new BadRequestException('Only .csv files are supported');
+    }
+    if (Buffer.byteLength(input.csvText, 'utf8') !== input.sizeBytes) {
+      throw new BadRequestException('CSV size does not match uploaded file');
+    }
+
+    const [headerLine, ...lines] = input.csvText
+      .replace(/^\uFEFF/, '')
+      .split(/\r?\n/)
+      .filter((line) => line.trim().length > 0);
+    const expected = [
+      'firstName',
+      'lastName',
+      'email',
+      'departmentCode',
+      'roleName',
+      'active',
+    ];
+    const header = this.parseCsvLine(headerLine ?? '').map((value) =>
+      value.trim(),
+    );
+    if (expected.some((column, index) => header[index] !== column)) {
+      throw new BadRequestException(
+        `CSV header must be: ${expected.join(',')}`,
+      );
+    }
+
+    const [departments, roles, existingUsers] = await Promise.all([
+      this.prisma.department.findMany({
+        where: {
+          active: true,
+          deletedAt: null,
+          organizationId: principal.organizationId,
+        },
+      }),
+      this.prisma.role.findMany({
+        where: {
+          active: true,
+          OR: [
+            { organizationId: principal.organizationId },
+            { isSystem: true, organizationId: null },
+          ],
+        },
+      }),
+      this.prisma.user.findMany({
+        select: { email: true },
+        where: { organizationId: principal.organizationId },
+      }),
+    ]);
+    const departmentByCode = new Map(
+      departments
+        .filter((department) => department.code)
+        .map((department) => [department.code?.toUpperCase(), department.id]),
+    );
+    const roleByName = new Map(
+      roles.map((role) => [role.name.toLowerCase(), role.id]),
+    );
+    const seen = new Set(existingUsers.map((user) => user.email));
+    const errors: Array<{ message: string; rowNumber: number }> = [];
+    const rows: Array<
+      ParsedUserImportRow & {
+        departmentId?: string;
+        roleId?: string;
+        status: 'duplicate' | 'invalid' | 'valid';
+      }
+    > = [];
+
+    lines.forEach((line, index) => {
+      const rowNumber = index + 2;
+      const [
+        firstName = '',
+        lastName = '',
+        email = '',
+        departmentCode = '',
+        roleName = '',
+        active = 'true',
+      ] = this.parseCsvLine(line).map((value) => value.trim());
+      const normalizedEmail = email.toLowerCase();
+      const departmentId = departmentByCode.get(departmentCode.toUpperCase());
+      const roleId = roleByName.get(roleName.toLowerCase());
+      const rowErrors = [
+        !firstName ? 'firstName is required' : '',
+        !lastName ? 'lastName is required' : '',
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+          ? 'email is invalid'
+          : '',
+        departmentCode && !departmentId ? 'departmentCode was not found' : '',
+        roleName && !roleId ? 'roleName was not found' : '',
+        !['true', 'false', '1', '0', 'yes', 'no'].includes(active.toLowerCase())
+          ? 'active must be true or false'
+          : '',
+      ].filter(Boolean);
+
+      if (rowErrors.length > 0) {
+        rowErrors.forEach((message) => errors.push({ message, rowNumber }));
+      }
+
+      const duplicate = seen.has(normalizedEmail);
+      seen.add(normalizedEmail);
+      rows.push({
+        active: ['true', '1', 'yes'].includes(active.toLowerCase()),
+        departmentCode,
+        email: normalizedEmail,
+        firstName,
+        lastName,
+        roleName,
+        rowNumber,
+        status:
+          rowErrors.length > 0 ? 'invalid' : duplicate ? 'duplicate' : 'valid',
+        ...(departmentId ? { departmentId } : {}),
+        ...(roleId ? { roleId } : {}),
+      });
+    });
+
+    return { errors, rows };
+  }
+
+  private parseCsvLine(line: string): string[] {
+    const values: string[] = [];
+    let current = '';
+    let quoted = false;
+
+    for (let index = 0; index < line.length; index += 1) {
+      const character = line[index];
+      const next = line[index + 1];
+      if (character === '"' && quoted && next === '"') {
+        current += '"';
+        index += 1;
+      } else if (character === '"') {
+        quoted = !quoted;
+      } else if (character === ',' && !quoted) {
+        values.push(current);
+        current = '';
+      } else {
+        current += character;
+      }
+    }
+    values.push(current);
+    return values;
+  }
+
+  private async sendTemporaryPasswordEmail(
+    to: string,
+    temporaryPassword: string,
+  ) {
+    await this.email?.send({
+      subject: '[FaithOS] Your pilot account is ready',
+      text: [
+        'A FaithOS pilot account has been created for you.',
+        '',
+        `Temporary password: ${temporaryPassword}`,
+        '',
+        'Development email uses Mailpit only. Change this password after first login when instructed by your administrator.',
+      ].join('\n'),
+      to,
+    });
+  }
+
+  private async checkDatabase() {
+    try {
+      await this.prisma.$queryRaw`SELECT 1`;
+      return { healthy: true, message: 'Database connection is healthy.' };
+    } catch {
+      return { healthy: false, message: 'Database connection failed.' };
+    }
+  }
+
+  private checkTcpUrl(value?: string) {
+    if (!value) {
+      return Promise.resolve({
+        healthy: false,
+        message: 'Connection URL is not configured.',
+      });
+    }
+    try {
+      const url = new URL(value);
+      return this.checkTcpHost(
+        url.hostname,
+        url.port || (url.protocol === 'rediss:' ? '6380' : '6379'),
+      );
+    } catch {
+      return Promise.resolve({ healthy: false, message: 'URL is invalid.' });
+    }
+  }
+
+  private checkTcpHost(host?: string, port?: string) {
+    if (!host || !port) {
+      return Promise.resolve({
+        healthy: false,
+        message: 'Host or port is not configured.',
+      });
+    }
+
+    return new Promise<{ healthy: boolean; message: string }>((resolve) => {
+      const socket = connect(Number.parseInt(port, 10), host);
+      const finish = (healthy: boolean, message: string) => {
+        socket.destroy();
+        resolve({ healthy, message });
+      };
+      socket.setTimeout(1_500, () => finish(false, 'Connection timed out.'));
+      socket.once('connect', () => finish(true, 'TCP connection succeeded.'));
+      socket.once('error', () => finish(false, 'TCP connection failed.'));
     });
   }
 
