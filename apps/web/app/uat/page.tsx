@@ -88,6 +88,33 @@ const sprint5Links = [
   ['Swagger Documentation', `${apiBaseUrl}/api/docs`, 'Report endpoint docs'],
 ] as const;
 
+const sprint6Links = [
+  ['Admin Dashboard', '/admin', 'Admin summary and configuration links'],
+  [
+    'Organization Settings',
+    '/admin/organization',
+    'GET/PATCH /admin/organization',
+  ],
+  ['Departments', '/admin/departments', 'Department create/update/deactivate'],
+  ['Users', '/admin/users', 'User search/filter/create/activate/deactivate'],
+  ['Roles', '/admin/roles', 'Role create/update/permission assignment'],
+  ['Permissions', '/admin/permissions', 'Grouped permissions and matrix'],
+  [
+    'Document Types',
+    '/admin/document-types',
+    'Document type defaults and workflow assignment',
+  ],
+  [
+    'Workflow Assignments',
+    '/admin/workflow-assignments',
+    'Workflow coverage by document type',
+  ],
+  ['System Settings', '/admin/system-settings', 'Safe pilot settings'],
+  ['Audit Log', '/admin/audit-log', 'Administrative audit entries'],
+  ['Pilot Readiness', '/admin/pilot-readiness', 'Pilot launch checklist'],
+  ['Swagger Documentation', `${apiBaseUrl}/api/docs`, 'Admin endpoint docs'],
+] as const;
+
 export default function UatDashboardPage() {
   return (
     <section className="stack">
@@ -96,7 +123,7 @@ export default function UatDashboardPage() {
         <h1>FaithOS UAT Dashboard</h1>
         <p>
           One clickable surface for manually testing every implemented FaithOS
-          feature through Sprint 5.
+          feature through Sprint 6.
         </p>
       </div>
 
@@ -177,6 +204,26 @@ export default function UatDashboardPage() {
         <h2>Sprint 5 Reporting & Analytics</h2>
         <div className="uat-grid">
           {sprint5Links.map(([label, href, description]) => {
+            const external = href.startsWith('http');
+            return (
+              <Link
+                className="uat-link"
+                href={href}
+                key={label}
+                target={external ? '_blank' : undefined}
+              >
+                <strong>{label}</strong>
+                <span>{description}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="panel">
+        <h2>Sprint 6 Admin Configuration & Pilot Readiness</h2>
+        <div className="uat-grid">
+          {sprint6Links.map(([label, href, description]) => {
             const external = href.startsWith('http');
             return (
               <Link

@@ -35,6 +35,123 @@ export type Permission = {
   module: string;
 };
 
+export type AdminOrganization = {
+  active?: boolean;
+  address?: string | null;
+  defaultCurrency?: string;
+  email: string;
+  id: string;
+  logoUrl?: string | null;
+  name: string;
+  phone?: string | null;
+  shortName?: string | null;
+  status: string;
+  timezone: string;
+  website?: string | null;
+};
+
+export type AdminSummary = {
+  counts: {
+    activeUsers: number;
+    departments: number;
+    documentTypes: number;
+    incompletePilotChecklistItems: number;
+    roles: number;
+    totalUsers: number;
+    workflowAssignments: number;
+  };
+  recentActivity: AdminAuditLog[];
+};
+
+export type AdminDepartment = Department & {
+  _count?: {
+    assignedWorkflowTasks: number;
+    currentDocuments: number;
+    members: number;
+  };
+  active: boolean;
+  code?: string | null;
+  departmentHead?: DemoUser | null;
+  parentDepartment?: Department | null;
+};
+
+export type AdminUser = DemoUser & {
+  createdAt: string;
+  department?: Department | null;
+  departmentId?: string | null;
+  jobTitle?: string | null;
+  lastLoginAt?: string | null;
+  phone?: string | null;
+  role?: Role | null;
+  roleId?: string | null;
+  status: string;
+};
+
+export type AdminRole = Role & {
+  _count?: { users: number };
+  active: boolean;
+  description?: string | null;
+  rolePermissions?: Array<{ permission: Permission; permissionId: string }>;
+};
+
+export type AdminPermissionMatrix = {
+  modules: Record<string, Permission[]>;
+  permissions: Array<
+    Permission & {
+      rolePermissions?: Array<{ role: AdminRole }>;
+    }
+  >;
+  roles: Array<{ id: string; name: string; permissionCodes: string[] }>;
+};
+
+export type AdminDocumentType = {
+  active: boolean;
+  defaultConfidentiality: string;
+  defaultPriority: string;
+  description?: string | null;
+  hasActiveWorkflow?: boolean;
+  id: string;
+  name: string;
+  referencePrefix: string;
+};
+
+export type AdminWorkflowAssignments = {
+  assignments: WorkflowAssignment[];
+  documentTypes: AdminDocumentType[];
+};
+
+export type AdminSystemSettings = {
+  allowedAttachmentTypes: string[];
+  brandingName: string;
+  brandingSubtitle: string;
+  defaultSlaDays: number;
+  emailNotificationsEnabled: boolean;
+  maintenanceMode: boolean;
+  maxAttachmentSizeBytes: number;
+  referenceNumberFormat: string;
+};
+
+export type AdminAuditLog = {
+  action: string;
+  createdAt: string;
+  entityId?: string | null;
+  entityType: string;
+  id: string;
+  newValues?: Record<string, unknown> | null;
+  oldValues?: Record<string, unknown> | null;
+  user?: DemoUser | null;
+};
+
+export type PilotReadiness = {
+  complete: boolean;
+  items: Array<{
+    complete: boolean;
+    explanation: string;
+    href: string;
+    label: string;
+  }>;
+};
+
 export type DocumentRecord = {
   attachments?: AttachmentRecord[];
   body: string;

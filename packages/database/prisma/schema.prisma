@@ -124,62 +124,75 @@ enum WorkflowNotificationType {
 }
 
 model Organization {
-  id        String             @id @default(uuid()) @db.Uuid
-  name      String
-  slug      String             @unique
-  email     String
-  phone     String?
-  address   String?
-  country   String
-  timezone  String             @default("UTC")
-  status    OrganizationStatus @default(ACTIVE)
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
+  id              String             @id @default(uuid()) @db.Uuid
+  name            String
+  slug            String             @unique
+  email           String
+  phone           String?
+  address         String?
+  country         String
+  timezone        String             @default("UTC")
+  shortName       String?
+  website         String?
+  logoUrl         String?
+  defaultCurrency String             @default("NGN")
+  status          OrganizationStatus @default(ACTIVE)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
-  departments Department[]
-  users       User[]
-  roles       Role[]
-  sessions    Session[]
-  auditLogs   AuditLog[]
-  documents   Document[]
-  attachments DocumentAttachment[]
-  routes      DocumentRoute[]
-  timeline    DocumentTimelineEvent[]
-  workflows   Workflow[]
+  departments         Department[]
+  users               User[]
+  roles               Role[]
+  sessions            Session[]
+  auditLogs           AuditLog[]
+  documents           Document[]
+  attachments         DocumentAttachment[]
+  routes              DocumentRoute[]
+  timeline            DocumentTimelineEvent[]
+  workflows           Workflow[]
   workflowAssignments WorkflowAssignment[]
-  workflowInstances WorkflowInstance[]
-  workflowTasks WorkflowTask[]
-  workflowHistory WorkflowHistoryEvent[]
-  delegations WorkflowDelegation[]
-  notifications WorkflowNotification[]
+  workflowInstances   WorkflowInstance[]
+  workflowTasks       WorkflowTask[]
+  workflowHistory     WorkflowHistoryEvent[]
+  delegations         WorkflowDelegation[]
+  notifications       WorkflowNotification[]
+  documentTypes       DocumentType[]
+  systemSettings      SystemSetting[]
 }
 
 model Department {
-  id               String    @id @default(uuid()) @db.Uuid
-  organizationId   String    @db.Uuid
-  name             String
-  description      String?
-  departmentHeadId String?   @db.Uuid
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  deletedAt        DateTime?
+  id                 String    @id @default(uuid()) @db.Uuid
+  organizationId     String    @db.Uuid
+  name               String
+  code               String?
+  description        String?
+  parentDepartmentId String?   @db.Uuid
+  departmentHeadId   String?   @db.Uuid
+  active             Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
 
-  organization     Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  departmentHead   User?                   @relation("DepartmentHead", fields: [departmentHeadId], references: [id], onDelete: SetNull)
-  members          User[]                  @relation("DepartmentMembers")
-  sentDocuments    Document[]              @relation("DocumentSenderDepartment")
-  currentDocuments Document[]              @relation("DocumentCurrentDepartment")
-  routesFrom       DocumentRoute[]         @relation("RouteFromDepartment")
-  routesTo         DocumentRoute[]         @relation("RouteToDepartment")
-  timelineFrom     DocumentTimelineEvent[] @relation("TimelineFromDepartment")
-  timelineTo       DocumentTimelineEvent[] @relation("TimelineToDepartment")
-  workflowSteps    WorkflowStep[]
+  organization          Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  parentDepartment      Department?             @relation("DepartmentHierarchy", fields: [parentDepartmentId], references: [id], onDelete: SetNull)
+  childDepartments      Department[]            @relation("DepartmentHierarchy")
+  departmentHead        User?                   @relation("DepartmentHead", fields: [departmentHeadId], references: [id], onDelete: SetNull)
+  members               User[]                  @relation("DepartmentMembers")
+  sentDocuments         Document[]              @relation("DocumentSenderDepartment")
+  currentDocuments      Document[]              @relation("DocumentCurrentDepartment")
+  routesFrom            DocumentRoute[]         @relation("RouteFromDepartment")
+  routesTo              DocumentRoute[]         @relation("RouteToDepartment")
+  timelineFrom          DocumentTimelineEvent[] @relation("TimelineFromDepartment")
+  timelineTo            DocumentTimelineEvent[] @relation("TimelineToDepartment")
+  workflowSteps         WorkflowStep[]
   assignedWorkflowTasks WorkflowTask[]
-  workflowHistory  WorkflowHistoryEvent[]
+  workflowHistory       WorkflowHistoryEvent[]
   workflowNotifications WorkflowNotification[]
 
   @@unique([organizationId, name])
+  @@unique([organizationId, code])
   @@index([organizationId, deletedAt])
+  @@index([organizationId, active])
 }
 
 model User {
@@ -199,25 +212,25 @@ model User {
   updatedAt      DateTime   @updatedAt
   deletedAt      DateTime?
 
-  organization        Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  department          Department?             @relation("DepartmentMembers", fields: [departmentId], references: [id], onDelete: SetNull)
-  role                Role?                   @relation(fields: [roleId], references: [id], onDelete: SetNull)
-  headedDepartments   Department[]            @relation("DepartmentHead")
-  sessions            Session[]
-  auditLogs           AuditLog[]
-  ownedDocuments      Document[]              @relation("DocumentOwner")
-  createdDocuments    Document[]              @relation("DocumentCreator")
-  updatedDocuments    Document[]              @relation("DocumentUpdater")
-  uploadedAttachments DocumentAttachment[]
-  routedDocuments     DocumentRoute[]
-  timelineEvents      DocumentTimelineEvent[]
-  startedWorkflows    WorkflowInstance[]
-  assignedWorkflowTasks WorkflowTask[] @relation("WorkflowTaskAssignee")
-  delegatedWorkflowTasks WorkflowTask[] @relation("WorkflowTaskDelegatedFrom")
-  workflowHistory     WorkflowHistoryEvent[]
-  delegationsFrom     WorkflowDelegation[] @relation("DelegationFromUser")
-  delegationsTo       WorkflowDelegation[] @relation("DelegationToUser")
-  workflowNotifications WorkflowNotification[]
+  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  department             Department?             @relation("DepartmentMembers", fields: [departmentId], references: [id], onDelete: SetNull)
+  role                   Role?                   @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  headedDepartments      Department[]            @relation("DepartmentHead")
+  sessions               Session[]
+  auditLogs              AuditLog[]
+  ownedDocuments         Document[]              @relation("DocumentOwner")
+  createdDocuments       Document[]              @relation("DocumentCreator")
+  updatedDocuments       Document[]              @relation("DocumentUpdater")
+  uploadedAttachments    DocumentAttachment[]
+  routedDocuments        DocumentRoute[]
+  timelineEvents         DocumentTimelineEvent[]
+  startedWorkflows       WorkflowInstance[]
+  assignedWorkflowTasks  WorkflowTask[]          @relation("WorkflowTaskAssignee")
+  delegatedWorkflowTasks WorkflowTask[]          @relation("WorkflowTaskDelegatedFrom")
+  workflowHistory        WorkflowHistoryEvent[]
+  delegationsFrom        WorkflowDelegation[]    @relation("DelegationFromUser")
+  delegationsTo          WorkflowDelegation[]    @relation("DelegationToUser")
+  workflowNotifications  WorkflowNotification[]
 
   @@index([organizationId, deletedAt])
   @@index([organizationId, departmentId])
@@ -230,6 +243,7 @@ model Role {
   name           String
   description    String?
   isSystem       Boolean  @default(false)
+  active         Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -241,6 +255,7 @@ model Role {
 
   @@unique([organizationId, name])
   @@index([organizationId, isSystem])
+  @@index([organizationId, active])
 }
 
 model Permission {
@@ -322,18 +337,18 @@ model Document {
   createdAt           DateTime                @default(now())
   updatedAt           DateTime                @updatedAt
 
-  organization      Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  senderDepartment  Department              @relation("DocumentSenderDepartment", fields: [senderDepartmentId], references: [id], onDelete: Restrict)
-  currentDepartment Department              @relation("DocumentCurrentDepartment", fields: [currentDepartmentId], references: [id], onDelete: Restrict)
-  owner             User                    @relation("DocumentOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
-  creator           User                    @relation("DocumentCreator", fields: [createdBy], references: [id], onDelete: Restrict)
-  updater           User                    @relation("DocumentUpdater", fields: [updatedBy], references: [id], onDelete: Restrict)
-  attachments       DocumentAttachment[]
-  routes            DocumentRoute[]
-  timeline          DocumentTimelineEvent[]
-  workflowInstances WorkflowInstance[]
-  workflowTasks     WorkflowTask[]
-  workflowHistory   WorkflowHistoryEvent[]
+  organization          Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  senderDepartment      Department              @relation("DocumentSenderDepartment", fields: [senderDepartmentId], references: [id], onDelete: Restrict)
+  currentDepartment     Department              @relation("DocumentCurrentDepartment", fields: [currentDepartmentId], references: [id], onDelete: Restrict)
+  owner                 User                    @relation("DocumentOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  creator               User                    @relation("DocumentCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  updater               User                    @relation("DocumentUpdater", fields: [updatedBy], references: [id], onDelete: Restrict)
+  attachments           DocumentAttachment[]
+  routes                DocumentRoute[]
+  timeline              DocumentTimelineEvent[]
+  workflowInstances     WorkflowInstance[]
+  workflowTasks         WorkflowTask[]
+  workflowHistory       WorkflowHistoryEvent[]
   workflowNotifications WorkflowNotification[]
 
   @@index([organizationId, status, createdAt])
@@ -419,7 +434,7 @@ model Workflow {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   versions     WorkflowVersion[]
   steps        WorkflowStep[]
   assignments  WorkflowAssignment[]
@@ -437,7 +452,7 @@ model WorkflowVersion {
   description String?
   createdAt   DateTime @default(now())
 
-  workflow  Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  workflow  Workflow           @relation(fields: [workflowId], references: [id], onDelete: Cascade)
   steps     WorkflowStep[]
   instances WorkflowInstance[]
 
@@ -446,30 +461,30 @@ model WorkflowVersion {
 }
 
 model WorkflowStep {
-  id                String                    @id @default(uuid()) @db.Uuid
-  workflowId        String                    @db.Uuid
-  workflowVersionId String?                   @db.Uuid
+  id                String                     @id @default(uuid()) @db.Uuid
+  workflowId        String                     @db.Uuid
+  workflowVersionId String?                    @db.Uuid
   sequence          Int
-  departmentId      String                    @db.Uuid
-  roleId            String?                   @db.Uuid
-  approvalRequired  Boolean                   @default(true)
-  canReturn         Boolean                   @default(true)
-  canForward        Boolean                   @default(false)
-  dueDays           Int                       @default(2)
-  escalationDays    Int                       @default(1)
-  notifyEmail       Boolean                   @default(false)
-  notifyInApp       Boolean                   @default(true)
+  departmentId      String                     @db.Uuid
+  roleId            String?                    @db.Uuid
+  approvalRequired  Boolean                    @default(true)
+  canReturn         Boolean                    @default(true)
+  canForward        Boolean                    @default(false)
+  dueDays           Int                        @default(2)
+  escalationDays    Int                        @default(1)
+  notifyEmail       Boolean                    @default(false)
+  notifyInApp       Boolean                    @default(true)
   conditionField    String?
   conditionOperator WorkflowConditionOperator?
   conditionValue    String?
-  createdAt         DateTime                  @default(now())
-  updatedAt         DateTime                  @updatedAt
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
 
-  workflow        Workflow         @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  workflowVersion WorkflowVersion? @relation(fields: [workflowVersionId], references: [id], onDelete: Cascade)
-  department      Department       @relation(fields: [departmentId], references: [id], onDelete: Restrict)
-  role            Role?            @relation(fields: [roleId], references: [id], onDelete: SetNull)
-  instances       WorkflowInstance[] @relation("CurrentWorkflowStep")
+  workflow        Workflow               @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  workflowVersion WorkflowVersion?       @relation(fields: [workflowVersionId], references: [id], onDelete: Cascade)
+  department      Department             @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  role            Role?                  @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  instances       WorkflowInstance[]     @relation("CurrentWorkflowStep")
   tasks           WorkflowTask[]
   previousHistory WorkflowHistoryEvent[] @relation("PreviousWorkflowStep")
   nextHistory     WorkflowHistoryEvent[] @relation("NextWorkflowStep")
@@ -512,12 +527,12 @@ model WorkflowInstance {
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
 
-  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  document        Document         @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  workflow        Workflow         @relation(fields: [workflowId], references: [id], onDelete: Restrict)
-  workflowVersion WorkflowVersion? @relation(fields: [workflowVersionId], references: [id], onDelete: SetNull)
-  currentStep     WorkflowStep?    @relation("CurrentWorkflowStep", fields: [currentStepId], references: [id], onDelete: SetNull)
-  starter         User             @relation(fields: [startedBy], references: [id], onDelete: Restrict)
+  organization    Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  document        Document               @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  workflow        Workflow               @relation(fields: [workflowId], references: [id], onDelete: Restrict)
+  workflowVersion WorkflowVersion?       @relation(fields: [workflowVersionId], references: [id], onDelete: SetNull)
+  currentStep     WorkflowStep?          @relation("CurrentWorkflowStep", fields: [currentStepId], references: [id], onDelete: SetNull)
+  starter         User                   @relation(fields: [startedBy], references: [id], onDelete: Restrict)
   tasks           WorkflowTask[]
   history         WorkflowHistoryEvent[]
   notifications   WorkflowNotification[]
@@ -630,4 +645,36 @@ model WorkflowNotification {
   @@index([organizationId, userId, readAt])
   @@index([organizationId, departmentId, readAt])
   @@index([workflowInstanceId, createdAt])
+}
+
+model DocumentType {
+  id                     String                  @id @default(uuid()) @db.Uuid
+  organizationId         String                  @db.Uuid
+  name                   String
+  description            String?
+  referencePrefix        String                  @default("DOC")
+  defaultConfidentiality DocumentConfidentiality @default(INTERNAL)
+  defaultPriority        DocumentPriority        @default(NORMAL)
+  active                 Boolean                 @default(true)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, name])
+  @@index([organizationId, active])
+}
+
+model SystemSetting {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  key            String
+  value          Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, key])
+  @@index([organizationId])
 }
