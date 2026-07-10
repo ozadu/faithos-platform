@@ -40,6 +40,9 @@ const permissions = [
   ['workflows.read', 'View workflows and workflow activity', 'workflows'],
   ['workflows.write', 'Manage workflow templates and assignments', 'workflows'],
   ['workflows.execute', 'Execute workflow approval tasks', 'workflows'],
+  ['notifications.read', 'View notification center', 'notifications'],
+  ['notifications.write', 'Manage notification read state', 'notifications'],
+  ['dashboard.read', 'View operational dashboards', 'dashboard'],
 ] as const;
 
 async function upsertSystemRole(
@@ -714,12 +717,83 @@ async function seedWorkflows({
         message: 'Generator procurement request requires approval.',
         organizationId,
         title: 'Workflow approval required',
-        type: WorkflowNotificationType.APPROVAL_REQUIRED,
+        type: WorkflowNotificationType.WORKFLOW_ASSIGNED,
         userId: users.admin,
         workflowInstanceId: instance.id,
       },
     });
   }
+
+  const activeInstance =
+    existingInstance ??
+    (await prisma.workflowInstance.findFirst({
+      where: {
+        documentId: pendingDocument.id,
+        organizationId,
+        status: WorkflowInstanceStatus.IN_PROGRESS,
+      },
+    }));
+
+  if (activeInstance) {
+    await ensureWorkflowNotification({
+      departmentId: departments.executive,
+      documentId: pendingDocument.id,
+      message: 'Generator procurement request requires approval.',
+      organizationId,
+      title: 'Workflow task assigned',
+      type: WorkflowNotificationType.WORKFLOW_ASSIGNED,
+      userId: users.admin,
+      workflowInstanceId: activeInstance.id,
+    });
+    await ensureWorkflowNotification({
+      departmentId: departments.executive,
+      documentId: pendingDocument.id,
+      message: 'Seeded overdue example for Sprint 4 dashboard testing.',
+      organizationId,
+      title: 'Workflow task overdue',
+      type: WorkflowNotificationType.WORKFLOW_OVERDUE,
+      userId: users.admin,
+      workflowInstanceId: activeInstance.id,
+    });
+  }
+}
+
+async function ensureWorkflowNotification({
+  departmentId,
+  documentId,
+  message,
+  organizationId,
+  title,
+  type,
+  userId,
+  workflowInstanceId,
+}: {
+  departmentId?: string;
+  documentId: string;
+  message: string;
+  organizationId: string;
+  title: string;
+  type: WorkflowNotificationType;
+  userId?: string;
+  workflowInstanceId: string;
+}) {
+  const existing = await prisma.workflowNotification.findFirst({
+    where: { documentId, organizationId, title, type },
+  });
+  if (existing) return existing;
+
+  return prisma.workflowNotification.create({
+    data: {
+      departmentId,
+      documentId,
+      message,
+      organizationId,
+      title,
+      type,
+      userId,
+      workflowInstanceId,
+    },
+  });
 }
 
 async function ensureWorkflow({

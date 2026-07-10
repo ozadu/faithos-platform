@@ -10,12 +10,14 @@ import {
   DocumentStatus,
   DocumentTimelineAction,
   Prisma,
+  WorkflowNotificationType,
 } from '@faithos/database';
 
 import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUser } from '../common/authenticated-user';
 import { RequestMetadata } from '../common/request-metadata.decorator';
 import { PrismaService } from '../database/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { WorkflowsService } from '../workflows/workflows.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { DocumentSearchDto } from './dto/document-search.dto';
@@ -68,6 +70,7 @@ export class DocumentsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     @Optional() private readonly workflows?: WorkflowsService,
+    @Optional() private readonly notifications?: NotificationsService,
   ) {}
 
   async list(principal: AuthenticatedUser, query: DocumentSearchDto) {
@@ -301,6 +304,15 @@ export class DocumentsService {
         fromDepartmentId: existing.currentDepartmentId,
       });
     });
+
+    await this.notifications?.create({
+      departmentId: existing.currentDepartmentId,
+      documentId: id,
+      organizationId: principal.organizationId,
+      title: 'Document archived',
+      type: WorkflowNotificationType.DOCUMENT_ARCHIVED,
+      userId: existing.ownerUserId,
+    });
   }
 
   async submit(
@@ -356,6 +368,16 @@ export class DocumentsService {
       organizationId: principal.organizationId,
       userId: principal.id,
       ...metadata,
+    });
+
+    await this.notifications?.create({
+      departmentId: document.currentDepartmentId,
+      documentId: document.id,
+      message: input.note,
+      organizationId: principal.organizationId,
+      title: 'Document submitted',
+      type: WorkflowNotificationType.DOCUMENT_SUBMITTED,
+      userId: document.ownerUserId,
     });
 
     await this.workflows?.startForDocument(principal, id, {
@@ -431,6 +453,16 @@ export class DocumentsService {
       ...metadata,
     });
 
+    await this.notifications?.create({
+      departmentId: input.departmentId,
+      documentId: document.id,
+      message: input.note,
+      organizationId: principal.organizationId,
+      sendEmail: true,
+      title: 'Document forwarded',
+      type: WorkflowNotificationType.DOCUMENT_FORWARDED,
+    });
+
     return document;
   }
 
@@ -497,6 +529,16 @@ export class DocumentsService {
       organizationId: principal.organizationId,
       userId: principal.id,
       ...metadata,
+    });
+
+    await this.notifications?.create({
+      departmentId: existing.senderDepartmentId,
+      documentId: document.id,
+      message: input.note,
+      organizationId: principal.organizationId,
+      title: 'Document returned',
+      type: WorkflowNotificationType.DOCUMENT_RETURNED,
+      userId: document.ownerUserId,
     });
 
     return document;

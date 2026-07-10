@@ -64,8 +64,11 @@ nav {
 }
 
 nav a {
+  align-items: center;
   border-radius: 0.75rem;
   color: #f9fafb;
+  display: flex;
+  justify-content: space-between;
   padding: 0.7rem 0.85rem;
   text-decoration: none;
 }
@@ -130,6 +133,17 @@ nav a:hover {
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.25rem 0.6rem;
+}
+
+.nav-badge {
+  background: #d6a94a;
+  border-radius: 999px;
+  color: #1f2a37;
+  font-size: 0.75rem;
+  font-weight: 800;
+  min-width: 1.6rem;
+  padding: 0.15rem 0.45rem;
+  text-align: center;
 }
 
 .badge.good {

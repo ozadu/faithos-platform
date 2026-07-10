@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import Link from 'next/link';
 
+import { SidebarNav } from './components/sidebar-nav';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -24,34 +24,7 @@ export default function RootLayout({
                 <small>DocRoute Core</small>
               </div>
             </div>
-            <nav>
-              <Link href="/">Dashboard</Link>
-              <Link href="/uat">UAT Dashboard</Link>
-              <Link href="/inbox">Inbox</Link>
-              <Link href="/sent">Sent</Link>
-              <Link href="/drafts">Drafts</Link>
-              <Link href="/archive">Archive</Link>
-              <Link href="/documents">Documents</Link>
-              <Link href="/documents/create">Create Document</Link>
-              <Link href="/search">Search</Link>
-              <Link href="/workflow-templates">Workflow Templates</Link>
-              <Link href="/workflow-builder">Workflow Builder</Link>
-              <Link href="/workflow-assignment">Workflow Assignment</Link>
-              <Link href="/pending-approvals">Pending Approvals</Link>
-              <Link href="/my-tasks">My Tasks</Link>
-              <Link href="/workflow-history">Workflow History</Link>
-              <Link href="/workflow-notifications">Workflow Notifications</Link>
-              <Link href="/workflow-delegations">Delegations</Link>
-              <Link href="/workflow-sla">SLA Engine</Link>
-              <Link href="/profile">User Profile</Link>
-              <Link href="/organization">Organization</Link>
-              <Link href="/users">Users</Link>
-              <Link href="/departments">Departments</Link>
-              <Link href="/roles">Roles</Link>
-              <Link href="/permissions">Permissions</Link>
-              <Link href="/health-check">Health Check</Link>
-              <Link href="/uat/report">UAT Report</Link>
-            </nav>
+            <SidebarNav />
           </aside>
           <main>{children}</main>
         </div>
