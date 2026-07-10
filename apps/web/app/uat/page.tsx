@@ -66,6 +66,28 @@ const sprint4Links = [
   ['Mailpit', 'http://localhost:8025', 'Verify dev SMTP emails'],
 ] as const;
 
+const sprint5Links = [
+  ['Reports Dashboard', '/reports', 'Management reporting overview'],
+  ['Document Reports', '/reports/documents', 'Document filters and CSV export'],
+  ['Workflow Reports', '/reports/workflows', 'Workflow SLA and duration table'],
+  [
+    'Department Reports',
+    '/reports/departments',
+    'Department workload analytics',
+  ],
+  ['User Activity Reports', '/reports/users', 'User productivity summaries'],
+  ['Overdue Reports', '/reports/overdue', 'Overdue tasks and CSV export'],
+  ['Turnaround Reports', '/reports/turnaround', 'Processing duration analysis'],
+  [
+    'Activity Reports',
+    '/reports/activity',
+    'Timeline and audit activity export',
+  ],
+  ['Executive Dashboard', '/dashboard/executive', 'Reporting links added'],
+  ['Department Dashboard', '/dashboard/department', 'Reporting links added'],
+  ['Swagger Documentation', `${apiBaseUrl}/api/docs`, 'Report endpoint docs'],
+] as const;
+
 export default function UatDashboardPage() {
   return (
     <section className="stack">
@@ -74,7 +96,7 @@ export default function UatDashboardPage() {
         <h1>FaithOS UAT Dashboard</h1>
         <p>
           One clickable surface for manually testing every implemented FaithOS
-          feature through Sprint 3.
+          feature through Sprint 5.
         </p>
       </div>
 
@@ -135,6 +157,26 @@ export default function UatDashboardPage() {
         <h2>Sprint 4 Notifications & Dashboard</h2>
         <div className="uat-grid">
           {sprint4Links.map(([label, href, description]) => {
+            const external = href.startsWith('http');
+            return (
+              <Link
+                className="uat-link"
+                href={href}
+                key={label}
+                target={external ? '_blank' : undefined}
+              >
+                <strong>{label}</strong>
+                <span>{description}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="panel">
+        <h2>Sprint 5 Reporting & Analytics</h2>
+        <div className="uat-grid">
+          {sprint5Links.map(([label, href, description]) => {
             const external = href.startsWith('http');
             return (
               <Link

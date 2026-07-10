@@ -43,6 +43,15 @@ const permissions = [
   ['notifications.read', 'View notification center', 'notifications'],
   ['notifications.write', 'Manage notification read state', 'notifications'],
   ['dashboard.read', 'View operational dashboards', 'dashboard'],
+  ['reports.view', 'View reporting and analytics', 'reports'],
+  ['reports.export', 'Export reporting data', 'reports'],
+  [
+    'reports.view.organization',
+    'View organization-wide reporting data',
+    'reports',
+  ],
+  ['reports.view.department', 'View department-scoped reports', 'reports'],
+  ['reports.view.self', 'View self-scoped reporting data', 'reports'],
 ] as const;
 
 async function upsertSystemRole(

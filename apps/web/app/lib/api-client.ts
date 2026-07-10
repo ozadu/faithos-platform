@@ -281,6 +281,46 @@ export type MyWorkSummary = {
   >;
 };
 
+export type ReportPagination = {
+  page: number;
+  pageSize: number;
+  total: number;
+};
+
+export type ReportList<T> = {
+  items: T[];
+  pagination: ReportPagination;
+};
+
+export type ReportSummary = {
+  averageApprovalHours: number;
+  averageWorkflowCompletionHours: number;
+  completedWorkflows: number;
+  documentsArchived: number;
+  documentsCompletedThisWeek: number;
+  documentsCreatedThisWeek: number;
+  documentsSubmittedThisWeek: number;
+  highPriorityPendingItems: Array<
+    Pick<DocumentRecord, 'id' | 'referenceNumber' | 'status' | 'title'> & {
+      currentDepartment?: Department | null;
+    }
+  >;
+  mostActiveDepartments: Array<{
+    department: Department;
+    totalActivity: number;
+  }>;
+  mostActiveUsers: Array<{
+    totalActivity: number;
+    user: DemoUser;
+  }>;
+  overdueWorkflows: number;
+  pendingDocuments: number;
+  scope: string;
+  totalDocuments: number;
+};
+
+export type ReportTableRow = Record<string, unknown>;
+
 export const apiBaseUrl =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
@@ -344,6 +384,21 @@ export async function apiHealth(): Promise<unknown> {
   const response = await fetch(`${apiProxyBasePath}/health`);
   if (!response.ok) throw new Error(`API health failed: ${response.status}`);
   return response.json();
+}
+
+export async function exportCsv(path: string, filename: string): Promise<void> {
+  const token = getAccessToken();
+  const response = await fetch(`${apiProxyBasePath}${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) throw new Error(`CSV export failed: ${response.status}`);
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 export async function webHealth(): Promise<unknown> {

@@ -308,6 +308,21 @@ code {
   padding-left: 1rem;
 }
 
+.report-bar {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.report-bar span {
+  background: #d6a94a;
+  border-radius: 999px;
+  color: #1f2a37;
+  display: inline-block;
+  font-weight: 800;
+  min-width: 2rem;
+  padding: 0.3rem 0.7rem;
+}
+
 @media (max-width: 800px) {
   .shell,
   .cards,
