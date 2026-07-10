@@ -80,6 +80,15 @@ export default function DashboardPage() {
                     {action.label}
                   </Link>
                 ))}
+                <Link className="button secondary" href="/reports">
+                  Reports
+                </Link>
+                <Link className="button secondary" href="/reports/overdue">
+                  Overdue Report
+                </Link>
+                <Link className="button secondary" href="/reports/workflows">
+                  Workflow Report
+                </Link>
               </div>
             </section>
 

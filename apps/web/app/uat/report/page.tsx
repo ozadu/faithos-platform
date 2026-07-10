@@ -30,6 +30,11 @@ const working = [
   'Department dashboard filtered to the current user department',
   'My Work aggregation for tasks, approvals, returns, overdue items, and completed tasks',
   'Navigation badge counts for Inbox, My Tasks, Notifications, and Pending Approvals',
+  'Reporting dashboard summary metrics for documents, workflows, users, departments, overdue work, and activity',
+  'Document, workflow, department, user, overdue, turnaround, and activity report pages',
+  'Report filters for date range, department, user, status, priority, document type, and workflow where supported',
+  'CSV exports for document, workflow, overdue, and activity reports',
+  'Reporting links on operational, executive, and department dashboards',
 ];
 
 const partial = [
@@ -39,6 +44,8 @@ const partial = [
   'Workflow Builder exposes practical step/version editing but not a drag-and-drop visual canvas.',
   'Email notifications are development SMTP/Mailpit only; production provider delivery is future infrastructure.',
   'Dashboard metrics are operational summaries, not a historical analytics warehouse.',
+  'Sprint 5 charts are lightweight in-app summary bars and tables; no advanced BI visualization dependency was introduced.',
+  'CSV export is implemented; PDF export remains intentionally out of scope for this sprint.',
 ];
 
 const missingBackend = [
@@ -56,7 +63,7 @@ export default function UatReportPage() {
         <h1>UAT Report</h1>
         <p>
           Current browser-testability status for implemented FaithOS features.
-          This report includes Sprint 4 Notifications & Dashboard exposure.
+          This report includes Sprint 5 Reporting & Analytics exposure.
         </p>
       </div>
       <section className="panel">
@@ -92,6 +99,34 @@ export default function UatReportPage() {
             </li>
           ))}
         </ul>
+      </section>
+      <section className="panel">
+        <h2>Sprint 5 manual test instructions</h2>
+        <ol>
+          <li>Log in with the demo administrator account from /uat.</li>
+          <li>
+            Open /reports and confirm summary cards and bar summaries load.
+          </li>
+          <li>
+            Open every /reports/* page and verify loading, empty/error states,
+            and tables.
+          </li>
+          <li>
+            Apply date, status, priority, department, user, and document type
+            filters where relevant.
+          </li>
+          <li>
+            Export CSV from document, workflow, overdue, and activity reports.
+          </li>
+          <li>
+            Confirm reporting links are present on /dashboard,
+            /dashboard/executive, and /dashboard/department.
+          </li>
+          <li>
+            Open Swagger and confirm all /api/v1/reports endpoints are
+            documented.
+          </li>
+        </ol>
       </section>
       <section className="panel">
         <h2>Broken links, runtime errors, API errors</h2>

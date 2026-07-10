@@ -41,6 +41,24 @@ export default function ExecutiveDashboardPage() {
 
         {dashboard ? (
           <>
+            <section className="panel">
+              <h2>Reporting links</h2>
+              <div className="actions">
+                <Link className="button secondary" href="/reports">
+                  Reports
+                </Link>
+                <Link className="button secondary" href="/reports/workflows">
+                  Workflow Report
+                </Link>
+                <Link className="button secondary" href="/reports/departments">
+                  Department Report
+                </Link>
+                <Link className="button secondary" href="/reports/overdue">
+                  Overdue Report
+                </Link>
+              </div>
+            </section>
+
             <section className="cards">
               <Metric
                 label="Total Documents"
