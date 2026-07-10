@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { AppController } from './app.controller';
+import { AdminModule } from './admin/admin.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { CommonModule } from './common/common.module';
@@ -27,6 +28,7 @@ import { WorkflowsModule } from './workflows/workflows.module';
     CommonModule,
     AuditModule,
     AuthModule,
+    AdminModule,
     OrganizationsModule,
     DepartmentsModule,
     UsersModule,

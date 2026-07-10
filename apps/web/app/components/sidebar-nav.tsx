@@ -49,7 +49,22 @@ const navItems = [
 
 type BadgeKey = NonNullable<(typeof navItems)[number][2]>;
 
+const adminItems = [
+  ['Admin Dashboard', '/admin'],
+  ['Organization', '/admin/organization'],
+  ['Departments', '/admin/departments'],
+  ['Users', '/admin/users'],
+  ['Roles', '/admin/roles'],
+  ['Permissions', '/admin/permissions'],
+  ['Document Types', '/admin/document-types'],
+  ['Workflow Assignments', '/admin/workflow-assignments'],
+  ['System Settings', '/admin/system-settings'],
+  ['Audit Log', '/admin/audit-log'],
+  ['Pilot Readiness', '/admin/pilot-readiness'],
+] as const;
+
 export function SidebarNav() {
+  const [adminAllowed, setAdminAllowed] = useState(false);
   const [counts, setCounts] = useState<Partial<Record<BadgeKey, number>>>({});
 
   useEffect(() => {
@@ -79,6 +94,10 @@ export function SidebarNav() {
     }
 
     void loadCounts();
+
+    void apiFetch('/admin')
+      .then(() => setAdminAllowed(true))
+      .catch(() => setAdminAllowed(false));
   }, []);
 
   return (
@@ -91,6 +110,16 @@ export function SidebarNav() {
           ) : null}
         </Link>
       ))}
+      {adminAllowed ? (
+        <>
+          <span className="nav-section">Admin</span>
+          {adminItems.map(([label, href]) => (
+            <Link href={href} key={href}>
+              <span>{label}</span>
+            </Link>
+          ))}
+        </>
+      ) : null}
     </nav>
   );
 }
