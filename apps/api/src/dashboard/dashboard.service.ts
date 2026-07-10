@@ -116,6 +116,8 @@ export class DashboardService {
         { href: '/notifications', label: 'Open Notifications' },
         { href: '/my-work', label: 'Review My Work' },
         { href: '/workflow-sla', label: 'Evaluate SLA' },
+        { href: '/reports', label: 'Open Reports' },
+        { href: '/reports/overdue', label: 'Review Overdue Report' },
       ],
       recentDocuments,
       recentWorkflows,

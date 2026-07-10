@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { ActivityFeed } from '../../components/activity-feed';
@@ -45,6 +46,24 @@ export default function DepartmentDashboardPage() {
 
         {dashboard ? (
           <>
+            <section className="panel">
+              <h2>Reporting links</h2>
+              <div className="actions">
+                <Link className="button secondary" href="/reports">
+                  Reports
+                </Link>
+                <Link className="button secondary" href="/reports/departments">
+                  Department Report
+                </Link>
+                <Link className="button secondary" href="/reports/workflows">
+                  Workflow Report
+                </Link>
+                <Link className="button secondary" href="/reports/overdue">
+                  Overdue Report
+                </Link>
+              </div>
+            </section>
+
             <section className="panel">
               <h2>{dashboard.department.name}</h2>
               <div className="cards">
