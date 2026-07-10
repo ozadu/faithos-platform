@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
   DocumentStatus,
@@ -15,6 +16,7 @@ import {
 
 import { AuthenticatedUser } from '../common/authenticated-user';
 import { PrismaService } from '../database/prisma.service';
+import { EmailService } from '../email/email.service';
 import {
   AssignWorkflowDto,
   UpdateWorkflowAssignmentDto,
@@ -89,7 +91,10 @@ const instanceInclude = {
 
 @Injectable()
 export class WorkflowsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly email?: EmailService,
+  ) {}
 
   listWorkflows(principal: AuthenticatedUser) {
     return this.prisma.workflow.findMany({
@@ -441,7 +446,7 @@ export class WorkflowsService {
           documentId: task.documentId,
           organizationId: principal.organizationId,
           title: 'Workflow completed',
-          type: WorkflowNotificationType.COMPLETED,
+          type: WorkflowNotificationType.WORKFLOW_COMPLETED,
           workflowInstanceId: task.workflowInstanceId,
         });
       } else {
@@ -462,6 +467,14 @@ export class WorkflowsService {
           instanceId: task.workflowInstanceId,
           organizationId: principal.organizationId,
           step: nextStep,
+        });
+        await this.notify(tx, {
+          documentId: task.documentId,
+          message: input.comments,
+          organizationId: principal.organizationId,
+          title: 'Workflow task approved',
+          type: WorkflowNotificationType.WORKFLOW_APPROVED,
+          workflowInstanceId: task.workflowInstanceId,
         });
       }
 
@@ -497,7 +510,7 @@ export class WorkflowsService {
       comments: input.comments,
       documentStatus: DocumentStatus.REJECTED,
       instanceStatus: WorkflowInstanceStatus.REJECTED,
-      notificationType: WorkflowNotificationType.REJECTED,
+      notificationType: WorkflowNotificationType.WORKFLOW_REJECTED,
       principal,
       profileDepartmentId: profile.departmentId,
       task,
@@ -515,7 +528,7 @@ export class WorkflowsService {
       comments: input.comments,
       documentStatus: DocumentStatus.RETURNED,
       instanceStatus: WorkflowInstanceStatus.CANCELLED,
-      notificationType: WorkflowNotificationType.RETURNED,
+      notificationType: WorkflowNotificationType.WORKFLOW_RETURNED,
       principal,
       profileDepartmentId: profile.departmentId,
       task,
@@ -586,7 +599,7 @@ export class WorkflowsService {
         message: input.comments,
         organizationId: principal.organizationId,
         title: 'Workflow task returned',
-        type: WorkflowNotificationType.RETURNED,
+        type: WorkflowNotificationType.WORKFLOW_RETURNED,
         workflowInstanceId: task.workflowInstanceId,
       });
       await this.recordHistory(tx, {
@@ -659,7 +672,7 @@ export class WorkflowsService {
         message: input.comments,
         organizationId: principal.organizationId,
         title: 'Workflow task forwarded',
-        type: WorkflowNotificationType.FORWARDED,
+        type: WorkflowNotificationType.DOCUMENT_FORWARDED,
         workflowInstanceId: task.workflowInstanceId,
       });
       await this.recordHistory(tx, {
@@ -765,8 +778,11 @@ export class WorkflowsService {
     });
   }
 
-  createDelegation(principal: AuthenticatedUser, input: CreateDelegationDto) {
-    return this.prisma.workflowDelegation.create({
+  async createDelegation(
+    principal: AuthenticatedUser,
+    input: CreateDelegationDto,
+  ) {
+    const delegation = await this.prisma.workflowDelegation.create({
       data: {
         active: input.active ?? true,
         endsAt: new Date(input.endsAt),
@@ -777,6 +793,14 @@ export class WorkflowsService {
         ...(input.reason ? { reason: input.reason } : {}),
       },
     });
+    await this.notify(this.prisma, {
+      message: input.reason,
+      organizationId: principal.organizationId,
+      title: 'Workflow delegation assigned',
+      type: WorkflowNotificationType.DELEGATION_ASSIGNED,
+      userId: input.toUserId,
+    });
+    return delegation;
   }
 
   async removeDelegation(principal: AuthenticatedUser, id: string) {
@@ -813,7 +837,7 @@ export class WorkflowsService {
           documentId: task.documentId,
           organizationId: principal.organizationId,
           title: 'Workflow task overdue',
-          type: WorkflowNotificationType.ESCALATED,
+          type: WorkflowNotificationType.WORKFLOW_OVERDUE,
           workflowInstanceId: task.workflowInstanceId,
         });
       }
@@ -1020,7 +1044,7 @@ export class WorkflowsService {
       documentId: input.documentId,
       organizationId: input.organizationId,
       title: 'Workflow approval required',
-      type: WorkflowNotificationType.APPROVAL_REQUIRED,
+      type: WorkflowNotificationType.WORKFLOW_ASSIGNED,
       workflowInstanceId: input.instanceId,
       ...(assigneeId ? { userId: assigneeId } : {}),
     });
@@ -1112,7 +1136,7 @@ export class WorkflowsService {
         message: input.comments,
         organizationId: input.principal.organizationId,
         title:
-          input.notificationType === WorkflowNotificationType.REJECTED
+          input.notificationType === WorkflowNotificationType.WORKFLOW_REJECTED
             ? 'Workflow rejected'
             : 'Workflow cancelled',
         type: input.notificationType,
@@ -1168,8 +1192,8 @@ export class WorkflowsService {
     });
   }
 
-  private notify(
-    tx: Prisma.TransactionClient,
+  private async notify(
+    tx: Prisma.TransactionClient | PrismaService,
     input: {
       departmentId?: string | null | undefined;
       documentId?: string | undefined;
@@ -1181,7 +1205,11 @@ export class WorkflowsService {
       workflowInstanceId?: string | undefined;
     },
   ) {
-    return tx.workflowNotification.create({
+    const notification = await tx.workflowNotification.create({
+      include: {
+        document: { select: { referenceNumber: true } },
+        user: { select: { email: true } },
+      },
       data: {
         message: input.message ?? input.title,
         organizationId: input.organizationId,
@@ -1195,6 +1223,54 @@ export class WorkflowsService {
           : {}),
       },
     });
+
+    const emailNotificationTypes: WorkflowNotificationType[] = [
+      WorkflowNotificationType.WORKFLOW_ASSIGNED,
+      WorkflowNotificationType.WORKFLOW_RETURNED,
+      WorkflowNotificationType.WORKFLOW_REJECTED,
+      WorkflowNotificationType.WORKFLOW_COMPLETED,
+      WorkflowNotificationType.WORKFLOW_OVERDUE,
+      WorkflowNotificationType.DOCUMENT_FORWARDED,
+    ];
+    const shouldEmail = emailNotificationTypes.includes(input.type);
+
+    if (notification && shouldEmail && this.email) {
+      const recipients = notification.user?.email
+        ? [notification.user.email]
+        : await this.departmentRecipients(tx, input);
+      if (recipients.length > 0) {
+        await this.email?.sendNotification({
+          documentReference: notification.document?.referenceNumber,
+          message: notification.message,
+          title: notification.title,
+          to: recipients,
+          type: notification.type,
+        });
+      }
+    }
+
+    return notification;
+  }
+
+  private async departmentRecipients(
+    tx: Prisma.TransactionClient | PrismaService,
+    input: {
+      departmentId?: string | null | undefined;
+      organizationId: string;
+    },
+  ) {
+    if (!input.departmentId) return [];
+    const users = await tx.user.findMany({
+      orderBy: { createdAt: 'asc' },
+      select: { email: true },
+      take: 5,
+      where: {
+        departmentId: input.departmentId,
+        organizationId: input.organizationId,
+        status: 'ACTIVE',
+      },
+    });
+    return users.map((user) => user.email);
   }
 
   private async getPrincipalProfile(principal: AuthenticatedUser) {

@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 
+import { ActivityFeed } from '../../components/activity-feed';
 import { AuthRequired } from '../../components/auth-required';
 import { PlannedBadge } from '../../components/planned-badge';
 import { Status } from '../../components/status';
@@ -323,15 +324,20 @@ export function DocumentDetailClient({ id }: { id: string }) {
 
             <section className="panel">
               <h2>Routing Timeline</h2>
-              <ol className="timeline">
-                {(document.timeline ?? []).map((event) => (
-                  <li key={event.id}>
-                    <strong>{event.action}</strong>
-                    <p>{event.note ?? 'No note recorded.'}</p>
-                    <small>{new Date(event.createdAt).toLocaleString()}</small>
-                  </li>
-                ))}
-              </ol>
+              <ActivityFeed
+                items={(document.timeline ?? []).map((event) => ({
+                  actor: event.actor,
+                  comments: event.note ?? 'No note recorded.',
+                  createdAt: event.createdAt,
+                  document: {
+                    id: document.id,
+                    referenceNumber: document.referenceNumber,
+                    title: document.title,
+                  },
+                  id: event.id,
+                  label: event.action,
+                }))}
+              />
             </section>
 
             <section className="panel">
