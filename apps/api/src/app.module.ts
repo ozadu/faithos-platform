@@ -11,6 +11,7 @@ import { DatabaseModule } from './database/database.module';
 import { DepartmentsModule } from './departments/departments.module';
 import { DocumentsModule } from './documents/documents.module';
 import { EmailModule } from './email/email.module';
+import { FeedbackModule } from './feedback/feedback.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { PermissionsModule } from './permissions/permissions.module';
@@ -41,6 +42,7 @@ import { WorkflowsModule } from './workflows/workflows.module';
     DashboardModule,
     DocumentsModule,
     WorkflowsModule,
+    FeedbackModule,
   ],
 })
 export class AppModule {}

@@ -74,6 +74,13 @@ const permissions = [
     'admin',
   ],
   ['admin.systemHealth.view', 'View safe system health status', 'admin'],
+  ['pilot.deployment.view', 'View pilot deployment control pack', 'pilot'],
+  ['pilot.feedback.view', 'View pilot feedback submissions', 'pilot'],
+  ['pilot.feedback.manage', 'Manage pilot feedback triage', 'pilot'],
+  ['pilot.issues.manage', 'Manage pilot issue tracker records', 'pilot'],
+  ['pilot.docs.view', 'View pilot documentation and handover guides', 'pilot'],
+  ['pilot.backup.view', 'View pilot backup and restore runbooks', 'pilot'],
+  ['pilot.handover.view', 'View pilot handover guide', 'pilot'],
 ] as const;
 
 async function upsertSystemRole(
@@ -329,6 +336,11 @@ async function main(): Promise<void> {
   await seedAdminConfiguration({
     organizationId: organization.id,
     permissions: permissionRecords,
+  });
+
+  await seedPilotTrialPack({
+    adminUserId: adminUser.id,
+    organizationId: organization.id,
   });
 
   console.log(`Seeded demo user ${DEMO_EMAIL}`);
@@ -701,6 +713,82 @@ async function seedAdminConfiguration({
       create: { key, organizationId, value },
       update: { value },
       where: { organizationId_key: { key, organizationId } },
+    });
+  }
+}
+
+async function seedPilotTrialPack({
+  adminUserId,
+  organizationId,
+}: {
+  adminUserId: string;
+  organizationId: string;
+}): Promise<void> {
+  const existingFeedback = await prisma.pilotFeedback.findFirst({
+    where: {
+      affectedArea: 'Workflow approvals',
+      organizationId,
+      type: 'Confusion',
+    },
+  });
+  const feedback =
+    existingFeedback ??
+    (await prisma.pilotFeedback.create({
+      data: {
+        affectedArea: 'Workflow approvals',
+        email: 'pilot.user@demo.faithos.local',
+        message:
+          'The approve and return actions are useful, but the team needs a short explanation beside each action during onboarding.',
+        name: 'Pilot User',
+        organizationId,
+        priority: 'Medium',
+        roleOrDepartment: 'Operations',
+        status: 'NEW',
+        submittedByUserId: adminUserId,
+        type: 'Confusion',
+      },
+    }));
+
+  if (
+    !(await prisma.pilotIssue.findFirst({
+      where: { organizationId, title: 'Add action guidance to workflow UAT' },
+    }))
+  ) {
+    await prisma.pilotIssue.create({
+      data: {
+        assignedOwner: 'Pilot Coordinator',
+        createdByUserId: adminUserId,
+        description:
+          'Track action guidance notes from the Sprint 8 trial. This is a pilot issue tracker record, not a new product feature.',
+        feedbackId: feedback.id,
+        organizationId,
+        relatedArea: 'Workflow approvals',
+        severity: 'Medium',
+        source: 'Feedback',
+        status: 'Open',
+        title: 'Add action guidance to workflow UAT',
+      },
+    });
+  }
+
+  if (
+    !(await prisma.pilotIssue.findFirst({
+      where: { organizationId, title: 'Verify backup runbook before go-live' },
+    }))
+  ) {
+    await prisma.pilotIssue.create({
+      data: {
+        assignedOwner: 'Technical Owner',
+        createdByUserId: adminUserId,
+        description:
+          'Run the documented backup command in the pilot environment and record restore evidence before production approval.',
+        organizationId,
+        relatedArea: 'Backup and restore',
+        severity: 'High',
+        source: 'Admin observation',
+        status: 'In Review',
+        title: 'Verify backup runbook before go-live',
+      },
     });
   }
 }

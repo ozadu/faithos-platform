@@ -92,6 +92,61 @@ const adminLinks = [
     'System Health',
     'Safe health summary for API, DB, Redis, Mailpit, and environment',
   ],
+  [
+    '/admin/pilot-deployment',
+    'Pilot Deployment',
+    'Sprint 8 deployment control summary and trial-pack entry point',
+  ],
+  [
+    '/admin/demo-credentials',
+    'Demo Credentials',
+    'Safe pilot handover list for seeded demo accounts',
+  ],
+  [
+    '/admin/pilot-setup-pack',
+    'Pilot Setup Pack',
+    'Readiness items administrators should verify before trial',
+  ],
+  [
+    '/admin/feedback',
+    'Feedback Triage',
+    'Review staff pilot feedback and update triage status',
+  ],
+  [
+    '/admin/pilot-issues',
+    'Pilot Issues',
+    'Pilot issue tracker for UAT and trial findings',
+  ],
+  [
+    '/admin/backup-runbook',
+    'Backup Runbook',
+    'Browser-accessible backup and restore operating notes',
+  ],
+  [
+    '/admin/pilot-docs',
+    'Pilot Docs',
+    'Trial documentation pack and test guidance',
+  ],
+  [
+    '/admin/onboarding-checklist',
+    'Admin Onboarding',
+    'Track admin setup and training completion',
+  ],
+  [
+    '/admin/trial-timeline',
+    'Trial Timeline',
+    'Suggested real-world trial sequence',
+  ],
+  [
+    '/admin/troubleshooting',
+    'Troubleshooting',
+    'Common pilot support checks and fixes',
+  ],
+  [
+    '/admin/handover-guide',
+    'Handover Guide',
+    'Pilot handover scope, limitations, and next checkpoint',
+  ],
 ] as const;
 
 export function AdminDashboard() {

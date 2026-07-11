@@ -60,6 +60,13 @@ import {
   AdminUserImportDto,
   AdminUserImportPreviewDto,
 } from './dto/admin-user-import.dto';
+import {
+  CreatePilotIssueDto,
+  PilotFeedbackQueryDto,
+  PilotIssueQueryDto,
+  UpdatePilotFeedbackDto,
+  UpdatePilotIssueDto,
+} from './dto/pilot-trial.dto';
 
 type HeaderResponse = {
   setHeader(name: string, value: string): void;
@@ -527,6 +534,133 @@ export class AdminController {
     return apiResponse(
       'System health retrieved',
       await this.admin.systemHealth(),
+    );
+  }
+
+  @Get('pilot-deployment')
+  @RequirePermissions('pilot.deployment.view')
+  @ApiOperation({ summary: 'Get Sprint 8 pilot deployment control summary' })
+  async pilotDeployment(@CurrentUser() user: AuthenticatedUser) {
+    return apiResponse(
+      'Pilot deployment summary retrieved',
+      await this.admin.pilotDeployment(user),
+    );
+  }
+
+  @Get('demo-credentials')
+  @RequirePermissions('pilot.deployment.view')
+  @ApiOperation({ summary: 'Get safe demo credential handover summary' })
+  async demoCredentials(@CurrentUser() user: AuthenticatedUser) {
+    return apiResponse(
+      'Demo credential summary retrieved',
+      await this.admin.demoCredentials(user),
+    );
+  }
+
+  @Get('pilot-setup-pack')
+  @RequirePermissions('pilot.deployment.view')
+  @ApiOperation({ summary: 'Get pilot setup pack readiness items' })
+  async pilotSetupPack(@CurrentUser() user: AuthenticatedUser) {
+    return apiResponse(
+      'Pilot setup pack retrieved',
+      await this.admin.pilotSetupPack(user),
+    );
+  }
+
+  @Get('feedback')
+  @RequirePermissions('pilot.feedback.view')
+  @ApiOperation({ summary: 'List pilot user feedback' })
+  async feedback(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: PilotFeedbackQueryDto,
+  ) {
+    return apiResponse(
+      'Pilot feedback retrieved',
+      await this.admin.feedback(user, query),
+    );
+  }
+
+  @Patch('feedback/:id')
+  @RequirePermissions('pilot.feedback.manage')
+  @ApiParam({ format: 'uuid', name: 'id' })
+  @ApiOperation({ summary: 'Update pilot feedback status or admin note' })
+  async updateFeedback(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() input: UpdatePilotFeedbackDto,
+    @CurrentRequestMetadata() metadata: RequestMetadata,
+  ) {
+    return apiResponse(
+      'Pilot feedback updated',
+      await this.admin.updateFeedback(user, id, input, metadata),
+    );
+  }
+
+  @Get('pilot-issues')
+  @RequirePermissions('pilot.issues.manage')
+  @ApiOperation({ summary: 'List pilot trial issue tracker records' })
+  async pilotIssues(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: PilotIssueQueryDto,
+  ) {
+    return apiResponse(
+      'Pilot issues retrieved',
+      await this.admin.pilotIssues(user, query),
+    );
+  }
+
+  @Post('pilot-issues')
+  @RequirePermissions('pilot.issues.manage')
+  @ApiOperation({ summary: 'Create a pilot trial issue tracker record' })
+  async createPilotIssue(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() input: CreatePilotIssueDto,
+    @CurrentRequestMetadata() metadata: RequestMetadata,
+  ) {
+    return apiResponse(
+      'Pilot issue created',
+      await this.admin.createPilotIssue(user, input, metadata),
+    );
+  }
+
+  @Patch('pilot-issues/:id')
+  @RequirePermissions('pilot.issues.manage')
+  @ApiParam({ format: 'uuid', name: 'id' })
+  @ApiOperation({ summary: 'Update a pilot trial issue tracker record' })
+  async updatePilotIssue(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() input: UpdatePilotIssueDto,
+    @CurrentRequestMetadata() metadata: RequestMetadata,
+  ) {
+    return apiResponse(
+      'Pilot issue updated',
+      await this.admin.updatePilotIssue(user, id, input, metadata),
+    );
+  }
+
+  @Get('onboarding-checklist')
+  @RequirePermissions('pilot.deployment.view')
+  @ApiOperation({ summary: 'Get current admin onboarding checklist' })
+  async onboardingChecklist(@CurrentUser() user: AuthenticatedUser) {
+    return apiResponse(
+      'Admin onboarding checklist retrieved',
+      await this.admin.onboardingChecklist(user),
+    );
+  }
+
+  @Post('onboarding-checklist/:key/complete')
+  @RequirePermissions('pilot.deployment.view')
+  @ApiParam({ name: 'key' })
+  @ApiOperation({ summary: 'Mark an admin onboarding checklist item complete' })
+  async completeOnboardingItem(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('key') key: string,
+    @CurrentRequestMetadata() metadata: RequestMetadata,
+  ) {
+    return apiResponse(
+      'Admin onboarding checklist updated',
+      await this.admin.completeOnboardingItem(user, key, metadata),
     );
   }
 }

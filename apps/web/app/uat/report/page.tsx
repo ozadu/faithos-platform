@@ -58,6 +58,16 @@ const working = [
   'Pilot user manual/help page',
   'System health page with safe API, database, Redis, Mailpit, environment, and version status',
   'Sprint 7 navigation and UAT links',
+  'Pilot deployment control page with setup, readiness, feedback, and issue summary',
+  'Demo credentials handover page for seeded local pilot accounts',
+  'Pilot setup pack readiness checklist',
+  'Authenticated staff pilot feedback submission form',
+  'Admin feedback triage list with reviewed/resolved status updates',
+  'Pilot issue tracker with create and status update actions',
+  'Admin onboarding checklist with completion tracking',
+  'Browser-accessible backup runbook, pilot docs, trial timeline, troubleshooting, and handover guide',
+  'Sprint 8 Prisma migration, seed data, and permissions for pilot trial records',
+  'Sprint 8 UAT dashboard links',
 ];
 
 const partial = [
@@ -76,12 +86,18 @@ const partial = [
   'CSV user import reads the file in the browser and sends CSV text to the API; no production bulk-import worker exists yet.',
   'Production readiness checks are boolean/placeholder pilot checks, not a full compliance engine.',
   'System health uses lightweight TCP/database checks and does not include external monitoring integration yet.',
+  'Sprint 8 feedback accepts screenshot URLs only; binary screenshot upload is not implemented.',
+  'Pilot issue tracker is intentionally lightweight and does not replace a full external support desk.',
+  'Backup runbook scripts are operator-triggered helpers; automated backup scheduling is future work.',
+  'Demo credential display is limited to seeded local pilot accounts and must be removed or rotated before production.',
 ];
 
 const missingBackend = [
   'SMS, WhatsApp, and push notification delivery',
   'Drag-and-drop workflow rule authoring',
   'Production object storage',
+  'Automated backup scheduler',
+  'Production email provider integration',
   'OCR and full-text indexing',
 ];
 
@@ -94,7 +110,8 @@ export default function UatReportPage() {
         <p>
           Current browser-testability status for implemented FaithOS features.
           This report includes Sprint 6 Admin Configuration & Pilot Readiness
-          exposure.
+          exposure, Sprint 7 pilot hardening, and Sprint 8 pilot deployment
+          trial-pack exposure.
         </p>
       </div>
       <section className="panel">
@@ -235,11 +252,74 @@ export default function UatReportPage() {
         </ul>
       </section>
       <section className="panel">
+        <h2>Sprint 8 manual test instructions</h2>
+        <ol>
+          <li>Log in with the demo administrator account from /uat.</li>
+          <li>
+            Open /admin/pilot-deployment and confirm release, readiness, demo
+            data, feedback, and issue summary cards load.
+          </li>
+          <li>
+            Open /admin/demo-credentials and confirm seeded demo accounts are
+            visible with the production warning.
+          </li>
+          <li>
+            Open /admin/pilot-setup-pack and verify each readiness link is
+            clickable.
+          </li>
+          <li>
+            Open /feedback, submit pilot feedback, then verify it appears at
+            /admin/feedback.
+          </li>
+          <li>
+            Mark feedback reviewed/resolved and verify the status changes.
+          </li>
+          <li>
+            Open /admin/pilot-issues, create an issue, and move it through In
+            Review, Fixed, and Closed.
+          </li>
+          <li>
+            Open /admin/onboarding-checklist and mark at least one manual item
+            complete.
+          </li>
+          <li>
+            Open /admin/backup-runbook, /admin/pilot-docs,
+            /admin/trial-timeline, /admin/troubleshooting, and
+            /admin/handover-guide.
+          </li>
+          <li>
+            Open Swagger and confirm /api/v1/feedback and new /api/v1/admin
+            pilot endpoints are documented.
+          </li>
+        </ol>
+      </section>
+      <section className="panel">
+        <h2>Sprint 8 known limitations and dev-only warnings</h2>
+        <ul>
+          <li>No production email provider was added.</li>
+          <li>No SMS, WhatsApp, or push notification flow was added.</li>
+          <li>
+            Backup and health scripts are helpers; automated backup scheduling
+            is future work.
+          </li>
+          <li>
+            Feedback screenshot support stores a URL only; direct binary
+            screenshot upload is future work.
+          </li>
+          <li>
+            Demo credentials are for local pilot/testing only and must be
+            rotated or removed before production use.
+          </li>
+        </ul>
+      </section>
+      <section className="panel">
         <h2>Broken links, runtime errors, API errors</h2>
         <p>
-          Manual browser verification completed against the Docker stack. No
-          broken local UAT routes, runtime errors, browser console errors, or
-          API error markers were found.
+          Manual browser verification should cover every route linked from /uat,
+          especially the Sprint 8 pilot deployment, feedback, issue tracker,
+          onboarding, and documentation pages. Any broken route, runtime error,
+          browser console error, or API error should be recorded here before
+          release.
         </p>
       </section>
     </section>
