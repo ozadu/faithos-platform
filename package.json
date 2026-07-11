@@ -14,6 +14,7 @@
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
     "docker:up": "docker compose up --build",
+    "backup:pilot": "powershell -ExecutionPolicy Bypass -File scripts/backup-pilot.ps1",
     "db:generate": "pnpm --filter @faithos/database db:generate",
     "db:migrate": "pnpm --filter @faithos/database db:migrate",
     "db:migrate:deploy": "pnpm --filter @faithos/database db:migrate:deploy",
@@ -23,6 +24,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "turbo run lint",
+    "pilot:health": "powershell -ExecutionPolicy Bypass -File scripts/pilot-health-check.ps1",
     "prepare": "husky",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck"
