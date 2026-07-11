@@ -235,6 +235,39 @@ const pilotReleaseCandidateLinks = [
   ['http://localhost:8025', 'Mailpit', 'Development SMTP inbox'],
 ] as const;
 
+const pilotDeploymentLinks = [
+  ['/pilot/checklist', 'Pilot Setup Checklist', 'Single launch gate'],
+  ['/pilot/uat', 'Pilot UAT Runner', 'Real-user pass/fail test flows'],
+  [
+    '/admin/deployment-readiness',
+    'Deployment Readiness',
+    'Environment, service, and secret-safety checks',
+  ],
+  [
+    '/admin/users/onboarding',
+    'User Onboarding',
+    'Role, department, activation, email, and login readiness',
+  ],
+  [
+    '/admin/permission-audit',
+    'Permission Audit',
+    'Sensitive permission review before staff access',
+  ],
+  [
+    '/admin/backup-readiness',
+    'Backup Readiness',
+    'Backup and restore dry-run status',
+  ],
+  [
+    '/admin/feedback',
+    'Admin Feedback Review',
+    'Pilot feedback filters and status updates',
+  ],
+  ['/reports', 'Reports', 'Management insight and CSV exports'],
+  [`${apiBaseUrl}/api/docs`, 'Swagger', 'API documentation'],
+  ['http://localhost:8025', 'Mailpit', 'Development SMTP inbox'],
+] as const;
+
 export default function UatDashboardPage() {
   return (
     <section className="stack">
@@ -440,6 +473,31 @@ export default function UatDashboardPage() {
         </p>
         <div className="uat-grid">
           {pilotReleaseCandidateLinks.map(([href, label, description]) => {
+            const external = href.startsWith('http');
+            return (
+              <Link
+                className="uat-link"
+                href={href}
+                key={label}
+                target={external ? '_blank' : undefined}
+              >
+                <strong>{label}</strong>
+                <span>{description}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="panel">
+        <h2>Pilot Deployment</h2>
+        <p>
+          Use this focused checklist when preparing one controlled real-world
+          pilot organization. Complete these links before the first live pilot
+          day.
+        </p>
+        <div className="uat-grid">
+          {pilotDeploymentLinks.map(([href, label, description]) => {
             const external = href.startsWith('http');
             return (
               <Link

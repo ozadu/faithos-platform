@@ -1,6 +1,14 @@
 # FaithOS Platform
 
-FaithOS is a pnpm and Turborepo monorepo containing the web application, API, shared packages, local infrastructure, and identity foundation.
+FaithOS is a pnpm and Turborepo monorepo containing the web application, API, shared packages, local infrastructure, identity foundation, DocRoute, workflow engine, notifications, reporting, administration, and pilot-readiness tooling.
+
+## Current release
+
+- Current release: `v0.9.0`
+- Status: Pilot Release Candidate
+- Intended use: one controlled real-world pilot organization with a technical installer/admin and clear support owner
+
+FaithOS v0.9.0 is not a broad public production SaaS release. Before any real deployment, review environment settings, disable demo seed, hide demo credentials, complete backup/restore dry-runs, run UAT, and capture pilot feedback.
 
 ## Prerequisites
 
@@ -44,6 +52,42 @@ docker compose down --volumes # permanently removes local data
 ```
 
 The equivalent helpers are `pnpm docker:up`, `pnpm docker:logs`, and `pnpm docker:down`. PostgreSQL and Redis use persistent named volumes.
+
+## Pilot UAT access
+
+After the stack is running, open:
+
+- UAT Dashboard: http://localhost:3000/uat
+- UAT Report: http://localhost:3000/uat/report
+- Pilot Checklist: http://localhost:3000/pilot/checklist
+- Pilot UAT Runner: http://localhost:3000/pilot/uat
+- Deployment Readiness: http://localhost:3000/admin/deployment-readiness
+- Admin Feedback Review: http://localhost:3000/admin/feedback
+
+API documentation is available at http://localhost:3001/api/docs and Mailpit is available at http://localhost:8025.
+
+## Pilot deployment documentation
+
+The pilot deployment preparation pack lives in `docs/pilot-deployment/` and includes:
+
+- `overview.md`
+- `installation-checklist.md`
+- `environment-checklist.md`
+- `first-admin-setup.md`
+- `organization-setup.md`
+- `department-setup.md`
+- `user-onboarding.md`
+- `workflow-setup.md`
+- `document-routing-test.md`
+- `backup-restore-test.md`
+- `pilot-uat-script.md`
+- `pilot-feedback-process.md`
+- `pilot-success-criteria.md`
+- `pilot-rollout-plan.md`
+- `pilot-issue-log-template.md`
+- `pilot-final-report-template.md`
+
+Use this pack to deploy FaithOS for one pilot organization, onboard users, run UAT, collect feedback, and produce the pilot final report.
 
 ## Run applications outside Docker
 
