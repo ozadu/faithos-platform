@@ -149,6 +149,46 @@ const sprint7Links = [
   ['Mailpit', 'http://localhost:8025', 'Password reset and invite emails'],
 ] as const;
 
+const sprint8Links = [
+  [
+    '/admin/pilot-deployment',
+    'Pilot Deployment Control',
+    'Sprint 8 deployment summary and trial pack entry point',
+  ],
+  [
+    '/admin/demo-credentials',
+    'Demo Credentials',
+    'Safe seeded demo-account handover',
+  ],
+  [
+    '/admin/pilot-setup-pack',
+    'Pilot Setup Pack',
+    'Admin readiness items for real-world trial',
+  ],
+  ['/feedback', 'Submit Feedback', 'Authenticated staff feedback form'],
+  ['/admin/feedback', 'Feedback Triage', 'Admin feedback review workflow'],
+  ['/admin/pilot-issues', 'Pilot Issue Tracker', 'Trial issue records'],
+  [
+    '/admin/backup-runbook',
+    'Backup Runbook',
+    'Backup, restore, attachment, and safety guidance',
+  ],
+  ['/admin/pilot-docs', 'Pilot Docs', 'Trial documentation pack'],
+  [
+    '/admin/onboarding-checklist',
+    'Admin Onboarding Checklist',
+    'Track admin readiness and training steps',
+  ],
+  ['/admin/trial-timeline', 'Trial Timeline', 'Suggested pilot schedule'],
+  ['/admin/troubleshooting', 'Troubleshooting', 'Common pilot support checks'],
+  [
+    '/admin/handover-guide',
+    'Handover Guide',
+    'Pilot handover scope and limits',
+  ],
+  [`${apiBaseUrl}/api/docs`, 'Swagger Documentation', 'Sprint 8 endpoint docs'],
+] as const;
+
 export default function UatDashboardPage() {
   return (
     <section className="stack">
@@ -157,7 +197,7 @@ export default function UatDashboardPage() {
         <h1>FaithOS UAT Dashboard</h1>
         <p>
           One clickable surface for manually testing every implemented FaithOS
-          feature through Sprint 7.
+          feature through Sprint 8.
         </p>
       </div>
 
@@ -294,11 +334,32 @@ export default function UatDashboardPage() {
         </div>
       </section>
 
+      <section className="panel">
+        <h2>Sprint 8 Pilot Deployment & Real-World Trial Pack</h2>
+        <div className="uat-grid">
+          {sprint8Links.map(([href, label, description]) => {
+            const external = href.startsWith('http');
+            return (
+              <Link
+                className="uat-link"
+                href={href}
+                key={label}
+                target={external ? '_blank' : undefined}
+              >
+                <strong>{label}</strong>
+                <span>{description}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
       <section className="panel stack">
         <h2>Planned / not implemented yet</h2>
         <p>
           SMS/WhatsApp/push delivery, OCR, full text indexing, production object
-          storage, and advanced visual rule authoring are planned for future
+          storage, automated backup scheduling, production email provider
+          integration, and advanced visual rule authoring are planned for future
           sprints.
         </p>
         <PlannedBadge />

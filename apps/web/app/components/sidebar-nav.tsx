@@ -45,6 +45,7 @@ const navItems = [
   ['Roles', '/roles'],
   ['Permissions', '/permissions'],
   ['Health Check', '/health-check'],
+  ['Feedback', '/feedback'],
   ['Help', '/help'],
   ['UAT Report', '/uat/report'],
 ] as const;
@@ -68,6 +69,17 @@ const adminItems = [
   ['Backup & Restore', '/admin/backup-restore'],
   ['Deployment Guide', '/admin/deployment-guide'],
   ['System Health', '/admin/system-health'],
+  ['Pilot Deployment', '/admin/pilot-deployment'],
+  ['Demo Credentials', '/admin/demo-credentials'],
+  ['Pilot Setup Pack', '/admin/pilot-setup-pack'],
+  ['Feedback Triage', '/admin/feedback'],
+  ['Pilot Issues', '/admin/pilot-issues'],
+  ['Backup Runbook', '/admin/backup-runbook'],
+  ['Pilot Docs', '/admin/pilot-docs'],
+  ['Onboarding Checklist', '/admin/onboarding-checklist'],
+  ['Trial Timeline', '/admin/trial-timeline'],
+  ['Troubleshooting', '/admin/troubleshooting'],
+  ['Handover Guide', '/admin/handover-guide'],
 ] as const;
 
 export function SidebarNav() {

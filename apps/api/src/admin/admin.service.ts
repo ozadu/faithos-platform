@@ -51,6 +51,14 @@ import {
   AdminUserImportDto,
   AdminUserImportPreviewDto,
 } from './dto/admin-user-import.dto';
+import {
+  CreatePilotFeedbackDto,
+  CreatePilotIssueDto,
+  PilotFeedbackQueryDto,
+  PilotIssueQueryDto,
+  UpdatePilotFeedbackDto,
+  UpdatePilotIssueDto,
+} from './dto/pilot-trial.dto';
 
 const userSelect = {
   createdAt: true,
@@ -91,6 +99,48 @@ type ParsedUserImportRow = {
   roleName: string;
   rowNumber: number;
 };
+
+const adminOnboardingItems = [
+  ['login', 'Login', '/login', 'Admin'],
+  [
+    'organization',
+    'Update organization profile',
+    '/admin/organization',
+    'Admin',
+  ],
+  ['departments', 'Create departments', '/admin/departments', 'Admin'],
+  ['users', 'Create users', '/admin/users', 'Admin'],
+  ['roles', 'Assign roles', '/admin/roles', 'Admin'],
+  [
+    'document-types',
+    'Configure document types',
+    '/admin/document-types',
+    'Admin',
+  ],
+  [
+    'workflow-assignments',
+    'Assign workflows',
+    '/admin/workflow-assignments',
+    'Admin',
+  ],
+  ['notifications', 'Review notifications', '/notifications', 'Admin'],
+  ['reports', 'Review reports', '/reports', 'Admin'],
+  ['pilot-readiness', 'Run pilot readiness', '/admin/pilot-readiness', 'Admin'],
+  [
+    'production-readiness',
+    'Review production readiness',
+    '/admin/production-readiness',
+    'Admin',
+  ],
+  ['backup-plan', 'Backup plan reviewed', '/admin/backup-runbook', 'Admin'],
+  ['staff-training', 'Staff training completed', '/help', 'Admin'],
+  [
+    'feedback-process',
+    'Feedback process explained',
+    '/admin/feedback',
+    'Admin',
+  ],
+] as const;
 
 @Injectable()
 export class AdminService {
@@ -1107,6 +1157,499 @@ export class AdminService {
         message: 'Web status is verified by the browser health route.',
       },
     };
+  }
+
+  async pilotDeployment(principal: AuthenticatedUser) {
+    const [
+      pilotReadiness,
+      productionReadiness,
+      setupCounts,
+      feedbackCount,
+      issueCount,
+    ] = await Promise.all([
+      this.pilotReadiness(principal),
+      this.productionReadiness(principal),
+      this.setupCounts(principal.organizationId),
+      this.prisma.pilotFeedback.count({
+        where: { organizationId: principal.organizationId },
+      }),
+      this.prisma.pilotIssue.count({
+        where: { organizationId: principal.organizationId },
+      }),
+    ]);
+
+    return {
+      backupGuidanceAvailable: true,
+      currentRelease: process.env.FAITHOS_RELEASE ?? 'v0.7.0',
+      demoDataPresent: setupCounts.demoDataPresent,
+      environmentName: process.env.NODE_ENV ?? 'development',
+      feedbackFormAvailable: true,
+      feedbackItems: feedbackCount,
+      handoverGuideAvailable: true,
+      issueTrackerAvailable: true,
+      openIssues: issueCount,
+      pilotReadinessStatus: pilotReadiness.complete ? 'READY' : 'REVIEW',
+      productionReadinessStatus: productionReadiness.complete
+        ? 'READY'
+        : 'REVIEW',
+      setupComplete: setupCounts.setupComplete,
+    };
+  }
+
+  async demoCredentials(principal: AuthenticatedUser) {
+    const users = await this.prisma.user.findMany({
+      include: {
+        department: { select: { name: true } },
+        role: { select: { name: true } },
+      },
+      orderBy: [{ role: { name: 'asc' } }, { email: 'asc' }],
+      take: 20,
+      where: {
+        deletedAt: null,
+        organizationId: principal.organizationId,
+        OR: [
+          { email: { endsWith: '.faithos.local' } },
+          { email: { contains: '@demo.' } },
+        ],
+      },
+    });
+
+    return {
+      warning: 'Change or remove demo credentials before production use.',
+      accounts: users.map((user) => ({
+        department: user.department?.name ?? 'Unassigned',
+        email: user.email,
+        lastLoginAt: user.lastLoginAt,
+        loginStatus: user.lastLoginAt ? 'Login verified' : 'Not logged in yet',
+        name: `${user.firstName} ${user.lastName}`,
+        password:
+          user.email === 'admin@demo.faithos.local'
+            ? 'FaithOS-Demo-2026!'
+            : 'Password available in deployment handover notes only.',
+        role: user.role?.name ?? 'Unassigned',
+        scenario: this.demoScenarioForRole(user.role?.name ?? ''),
+      })),
+    };
+  }
+
+  async pilotSetupPack(principal: AuthenticatedUser) {
+    const organizationId = principal.organizationId;
+    const [
+      organization,
+      departments,
+      users,
+      roles,
+      documentTypes,
+      workflows,
+      workflowAssignments,
+      notifications,
+    ] = await Promise.all([
+      this.organization(principal),
+      this.prisma.department.count({
+        where: { active: true, deletedAt: null, organizationId },
+      }),
+      this.prisma.user.count({
+        where: { deletedAt: null, organizationId, status: UserStatus.ACTIVE },
+      }),
+      this.prisma.role.count({ where: { active: true, organizationId } }),
+      this.prisma.documentType.count({
+        where: { active: true, organizationId },
+      }),
+      this.prisma.workflow.count({ where: { active: true, organizationId } }),
+      this.prisma.workflowAssignment.count({
+        where: { active: true, organizationId },
+      }),
+      this.prisma.workflowNotification.count({ where: { organizationId } }),
+    ]);
+
+    const profileComplete = Boolean(
+      organization.name && organization.email && organization.timezone,
+    );
+    const items = [
+      this.packItem(
+        'Organization profile',
+        profileComplete,
+        'Confirm name, email, timezone, contact details, and branding.',
+        '/admin/organization',
+        'Organization Admin',
+      ),
+      this.packItem(
+        'Departments',
+        departments >= 3,
+        `${departments} active department(s) configured.`,
+        '/admin/departments',
+        'Organization Admin',
+      ),
+      this.packItem(
+        'Users',
+        users >= 5,
+        `${users} active user(s) configured.`,
+        '/admin/users',
+        'Organization Admin',
+      ),
+      this.packItem(
+        'Roles',
+        roles >= 3,
+        `${roles} organization role(s) configured.`,
+        '/admin/roles',
+        'Organization Admin',
+      ),
+      this.packItem(
+        'Document types',
+        documentTypes >= 3,
+        `${documentTypes} document type(s) configured.`,
+        '/admin/document-types',
+        'Records Owner',
+      ),
+      this.packItem(
+        'Workflow templates',
+        workflows >= 1,
+        `${workflows} active workflow template(s) configured.`,
+        '/workflow-templates',
+        'Process Owner',
+      ),
+      this.packItem(
+        'Workflow assignments',
+        workflowAssignments >= 3,
+        `${workflowAssignments} workflow assignment(s) configured.`,
+        '/admin/workflow-assignments',
+        'Process Owner',
+      ),
+      this.packItem(
+        'System settings',
+        true,
+        'Safe pilot settings are available for review.',
+        '/admin/system-settings',
+        'Organization Admin',
+      ),
+      this.packItem(
+        'Notifications',
+        notifications > 0,
+        `${notifications} notification record(s) found.`,
+        '/notifications',
+        'Pilot Coordinator',
+      ),
+      this.packItem(
+        'Reports',
+        true,
+        'Reports dashboard and CSV exports are available.',
+        '/reports',
+        'Leadership',
+      ),
+      this.packItem(
+        'Backup plan',
+        true,
+        'Backup runbook and scripts are included in Sprint 8.',
+        '/admin/backup-runbook',
+        'Technical Owner',
+      ),
+      this.packItem(
+        'Admin training',
+        false,
+        'Complete admin onboarding before wider staff testing.',
+        '/admin/onboarding-checklist',
+        'Pilot Coordinator',
+      ),
+      this.packItem(
+        'Staff onboarding',
+        false,
+        'Share user manual and collect feedback during the trial.',
+        '/help',
+        'Pilot Coordinator',
+      ),
+    ];
+
+    return { complete: items.every((item) => item.complete), items };
+  }
+
+  async submitFeedback(
+    principal: AuthenticatedUser,
+    input: CreatePilotFeedbackDto,
+  ) {
+    return this.prisma.pilotFeedback.create({
+      data: {
+        affectedArea: input.affectedArea,
+        email: input.email.toLowerCase(),
+        message: input.message,
+        name: input.name,
+        organizationId: principal.organizationId,
+        priority: input.priority,
+        roleOrDepartment: input.roleOrDepartment,
+        submittedByUserId: principal.id,
+        type: input.type,
+        ...(input.screenshotUrl ? { screenshotUrl: input.screenshotUrl } : {}),
+      },
+    });
+  }
+
+  feedback(principal: AuthenticatedUser, query: PilotFeedbackQueryDto) {
+    return this.prisma.pilotFeedback.findMany({
+      include: {
+        submitter: {
+          select: { email: true, firstName: true, id: true, lastName: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      where: {
+        organizationId: principal.organizationId,
+        ...(query.priority ? { priority: query.priority } : {}),
+        ...(query.status ? { status: query.status } : {}),
+        ...(query.type ? { type: query.type } : {}),
+      },
+    });
+  }
+
+  async updateFeedback(
+    principal: AuthenticatedUser,
+    id: string,
+    input: UpdatePilotFeedbackDto,
+    metadata: RequestMetadata,
+  ) {
+    await this.ensureFeedback(principal.organizationId, id);
+    const feedback = await this.prisma.pilotFeedback.update({
+      data: input,
+      where: { id },
+    });
+    await this.record(principal, metadata, {
+      action: 'pilot.feedback.updated',
+      entityId: id,
+      entityType: 'PilotFeedback',
+      newValues: input as Prisma.InputJsonObject,
+    });
+    return feedback;
+  }
+
+  pilotIssues(principal: AuthenticatedUser, query: PilotIssueQueryDto) {
+    return this.prisma.pilotIssue.findMany({
+      include: {
+        creator: {
+          select: { email: true, firstName: true, id: true, lastName: true },
+        },
+        feedback: { select: { id: true, priority: true, type: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      where: {
+        organizationId: principal.organizationId,
+        ...(query.severity ? { severity: query.severity } : {}),
+        ...(query.source ? { source: query.source } : {}),
+        ...(query.status ? { status: query.status } : {}),
+      },
+    });
+  }
+
+  async createPilotIssue(
+    principal: AuthenticatedUser,
+    input: CreatePilotIssueDto,
+    metadata: RequestMetadata,
+  ) {
+    if (input.feedbackId) {
+      await this.ensureFeedback(principal.organizationId, input.feedbackId);
+    }
+    const issue = await this.prisma.pilotIssue.create({
+      data: {
+        createdByUserId: principal.id,
+        description: input.description,
+        organizationId: principal.organizationId,
+        severity: input.severity,
+        source: input.source,
+        status: input.status ?? 'Open',
+        title: input.title,
+        ...(input.assignedOwner ? { assignedOwner: input.assignedOwner } : {}),
+        ...(input.feedbackId ? { feedbackId: input.feedbackId } : {}),
+        ...(input.relatedArea ? { relatedArea: input.relatedArea } : {}),
+      },
+    });
+    await this.record(principal, metadata, {
+      action: 'pilot.issue.created',
+      entityId: issue.id,
+      entityType: 'PilotIssue',
+      newValues: { severity: issue.severity, title: issue.title },
+    });
+    return issue;
+  }
+
+  async updatePilotIssue(
+    principal: AuthenticatedUser,
+    id: string,
+    input: UpdatePilotIssueDto,
+    metadata: RequestMetadata,
+  ) {
+    await this.ensurePilotIssue(principal.organizationId, id);
+    const issue = await this.prisma.pilotIssue.update({
+      data: input,
+      where: { id },
+    });
+    await this.record(principal, metadata, {
+      action: 'pilot.issue.updated',
+      entityId: id,
+      entityType: 'PilotIssue',
+      newValues: input as Prisma.InputJsonObject,
+    });
+    return issue;
+  }
+
+  async onboardingChecklist(principal: AuthenticatedUser) {
+    const [completed, setupCounts] = await Promise.all([
+      this.prisma.adminOnboardingItem.findMany({
+        where: {
+          organizationId: principal.organizationId,
+          userId: principal.id,
+        },
+      }),
+      this.setupCounts(principal.organizationId),
+    ]);
+    const completedKeys = new Set(completed.map((item) => item.key));
+    const derivedComplete = new Set<string>([
+      'login',
+      ...(setupCounts.organizationConfigured ? ['organization'] : []),
+      ...(setupCounts.departmentsConfigured ? ['departments'] : []),
+      ...(setupCounts.usersConfigured ? ['users'] : []),
+      ...(setupCounts.documentTypesConfigured ? ['document-types'] : []),
+      ...(setupCounts.workflowAssignmentsConfigured
+        ? ['workflow-assignments']
+        : []),
+    ]);
+
+    const items = adminOnboardingItems.map(([key, label, href, owner]) => ({
+      complete: completedKeys.has(key) || derivedComplete.has(key),
+      href,
+      key,
+      label,
+      owner,
+    }));
+
+    return { complete: items.every((item) => item.complete), items };
+  }
+
+  async completeOnboardingItem(
+    principal: AuthenticatedUser,
+    key: string,
+    metadata: RequestMetadata,
+  ) {
+    const allowed = new Set<string>(
+      adminOnboardingItems.map(([itemKey]) => itemKey),
+    );
+    if (!allowed.has(key)) {
+      throw new NotFoundException('Onboarding checklist item not found');
+    }
+    const item = await this.prisma.adminOnboardingItem.upsert({
+      create: {
+        key,
+        organizationId: principal.organizationId,
+        userId: principal.id,
+      },
+      update: { completedAt: new Date() },
+      where: {
+        organizationId_userId_key: {
+          key,
+          organizationId: principal.organizationId,
+          userId: principal.id,
+        },
+      },
+    });
+    await this.record(principal, metadata, {
+      action: 'pilot.onboarding.completed',
+      entityId: item.id,
+      entityType: 'AdminOnboardingItem',
+      newValues: { key },
+    });
+    return this.onboardingChecklist(principal);
+  }
+
+  private async setupCounts(organizationId: string) {
+    const [
+      organization,
+      departments,
+      users,
+      documentTypes,
+      workflowAssignments,
+      documents,
+    ] = await Promise.all([
+      this.prisma.organization.findUnique({ where: { id: organizationId } }),
+      this.prisma.department.count({
+        where: { active: true, deletedAt: null, organizationId },
+      }),
+      this.prisma.user.count({
+        where: { deletedAt: null, organizationId, status: UserStatus.ACTIVE },
+      }),
+      this.prisma.documentType.count({
+        where: { active: true, organizationId },
+      }),
+      this.prisma.workflowAssignment.count({
+        where: { active: true, organizationId },
+      }),
+      this.prisma.document.count({ where: { organizationId } }),
+    ]);
+    const organizationConfigured = Boolean(
+      organization?.name && organization.email && organization.timezone,
+    );
+    const departmentsConfigured = departments >= 3;
+    const usersConfigured = users >= 5;
+    const documentTypesConfigured = documentTypes >= 3;
+    const workflowAssignmentsConfigured = workflowAssignments >= 3;
+    const setupComplete =
+      organizationConfigured &&
+      departmentsConfigured &&
+      usersConfigured &&
+      documentTypesConfigured &&
+      workflowAssignmentsConfigured;
+
+    return {
+      departments,
+      departmentsConfigured,
+      demoDataPresent: documents >= 10,
+      documentTypes,
+      documentTypesConfigured,
+      organizationConfigured,
+      setupComplete,
+      users,
+      usersConfigured,
+      workflowAssignments,
+      workflowAssignmentsConfigured,
+    };
+  }
+
+  private demoScenarioForRole(roleName: string) {
+    if (roleName.toLowerCase().includes('admin')) {
+      return 'Configure departments, users, document types, workflows, and pilot settings.';
+    }
+    if (roleName.toLowerCase().includes('viewer')) {
+      return 'Review dashboards, reports, documents, and UAT feedback without changing configuration.';
+    }
+    return 'Create documents, route workflow tasks, review notifications, and submit pilot feedback.';
+  }
+
+  private packItem(
+    label: string,
+    complete: boolean,
+    description: string,
+    href: string,
+    owner: string,
+  ) {
+    return {
+      complete,
+      description,
+      href,
+      label,
+      owner,
+      status: complete ? 'Complete' : 'Needs review',
+    };
+  }
+
+  private async ensureFeedback(organizationId: string, id: string) {
+    const feedback = await this.prisma.pilotFeedback.findFirst({
+      where: { id, organizationId },
+    });
+    if (!feedback) throw new NotFoundException('Pilot feedback not found');
+    return feedback;
+  }
+
+  private async ensurePilotIssue(organizationId: string, id: string) {
+    const issue = await this.prisma.pilotIssue.findFirst({
+      where: { id, organizationId },
+    });
+    if (!issue) throw new NotFoundException('Pilot issue not found');
+    return issue;
   }
 
   private async setUserStatus(
