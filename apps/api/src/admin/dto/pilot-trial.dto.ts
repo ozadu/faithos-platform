@@ -18,6 +18,19 @@ const feedbackTypes = [
 ] as const;
 
 const feedbackPriorities = ['Low', 'Medium', 'High', 'Critical'] as const;
+const productionFeedbackCategories = [
+  'BUG',
+  'FEATURE_REQUEST',
+  'CONFUSING_UI',
+  'PERFORMANCE',
+  'OTHER',
+] as const;
+const productionFeedbackSeverities = [
+  'LOW',
+  'MEDIUM',
+  'HIGH',
+  'CRITICAL',
+] as const;
 const feedbackStatuses = ['NEW', 'REVIEWED', 'RESOLVED'] as const;
 const issueSources = [
   'Manual',
@@ -35,37 +48,71 @@ const issueStatuses = [
 const issueSeverities = ['Low', 'Medium', 'High', 'Critical'] as const;
 
 export class CreatePilotFeedbackDto {
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   @MinLength(1)
-  name!: string;
+  name?: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsEmail()
-  email!: string;
+  email?: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   @MinLength(1)
-  roleOrDepartment!: string;
+  roleOrDepartment?: string;
 
-  @ApiProperty({ enum: feedbackTypes })
+  @ApiPropertyOptional({ enum: feedbackTypes })
+  @IsOptional()
   @IsIn(feedbackTypes)
-  type!: string;
+  type?: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   @MinLength(1)
-  affectedArea!: string;
+  affectedArea?: string;
 
-  @ApiProperty({ enum: feedbackPriorities })
+  @ApiPropertyOptional({ enum: feedbackPriorities })
+  @IsOptional()
   @IsIn(feedbackPriorities)
-  priority!: string;
+  priority?: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   @MinLength(5)
-  message!: string;
+  message?: string;
+
+  @ApiPropertyOptional({ enum: productionFeedbackCategories })
+  @IsOptional()
+  @IsIn(productionFeedbackCategories)
+  category?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  title?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MinLength(5)
+  description?: string;
+
+  @ApiPropertyOptional({ enum: productionFeedbackSeverities })
+  @IsOptional()
+  @IsIn(productionFeedbackSeverities)
+  severity?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  currentRoute?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

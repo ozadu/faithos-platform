@@ -69,18 +69,17 @@ type PilotIssue = {
   title: string;
 };
 
-const feedbackTypes = [
-  'Bug',
-  'Confusion',
-  'Feature request',
-  'Process improvement',
-  'Training need',
-  'Other',
-];
-const priorities = ['Low', 'Medium', 'High', 'Critical'];
 const issueSources = ['Manual', 'Feedback', 'UAT', 'Admin observation'];
 const issueSeverities = ['Low', 'Medium', 'High', 'Critical'];
 const issueStatuses = ['Open', 'In Review', 'Planned', 'Fixed', 'Closed'];
+const productionFeedbackCategories = [
+  'BUG',
+  'FEATURE_REQUEST',
+  'CONFUSING_UI',
+  'PERFORMANCE',
+  'OTHER',
+];
+const productionFeedbackSeverities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 
 export function PilotDeploymentPage() {
   const [summary, setSummary] = useState<PilotDeployment | null>(null);
@@ -291,14 +290,11 @@ export function OnboardingChecklistPage() {
 
 export function FeedbackPage() {
   const [form, setForm] = useState({
-    affectedArea: 'Documents',
-    email: '',
-    message: '',
-    name: '',
-    priority: 'Medium',
-    roleOrDepartment: '',
-    screenshotUrl: '',
-    type: 'Confusion',
+    category: 'CONFUSING_UI',
+    currentRoute: '',
+    description: '',
+    severity: 'MEDIUM',
+    title: '',
   });
   const [message, setMessage] = useState('');
 
@@ -308,13 +304,13 @@ export function FeedbackPage() {
     await apiFetch('/feedback', {
       body: JSON.stringify({
         ...form,
-        screenshotUrl: form.screenshotUrl || undefined,
+        currentRoute: form.currentRoute || window.location.pathname,
       }),
       method: 'POST',
     })
       .then(() => {
         setMessage('Feedback submitted. Thank you.');
-        setForm((current) => ({ ...current, message: '', screenshotUrl: '' }));
+        setForm((current) => ({ ...current, description: '', title: '' }));
       })
       .catch((error: Error) => setMessage(error.message));
   }
@@ -325,92 +321,62 @@ export function FeedbackPage() {
         <Hero
           eyebrow="Pilot Feedback"
           title="Submit Feedback"
-          body="Capture real pilot feedback without using Swagger or direct API calls."
+          body="Capture real pilot feedback without using Swagger or direct API calls. Your user and organization are attached automatically."
         />
         <form className="panel stack" onSubmit={(event) => void submit(event)}>
           <label>
-            Name
-            <input
-              required
-              value={form.name}
-              onChange={(event) =>
-                setForm({ ...form, name: event.target.value })
-              }
-            />
-          </label>
-          <label>
-            Email
-            <input
-              required
-              type="email"
-              value={form.email}
-              onChange={(event) =>
-                setForm({ ...form, email: event.target.value })
-              }
-            />
-          </label>
-          <label>
-            Role or department
-            <input
-              required
-              value={form.roleOrDepartment}
-              onChange={(event) =>
-                setForm({ ...form, roleOrDepartment: event.target.value })
-              }
-            />
-          </label>
-          <label>
-            Type
+            Category
             <select
-              value={form.type}
+              value={form.category}
               onChange={(event) =>
-                setForm({ ...form, type: event.target.value })
+                setForm({ ...form, category: event.target.value })
               }
             >
-              {feedbackTypes.map((type) => (
-                <option key={type}>{type}</option>
+              {productionFeedbackCategories.map((category) => (
+                <option key={category}>{category}</option>
               ))}
             </select>
           </label>
           <label>
-            Affected area
-            <input
-              required
-              value={form.affectedArea}
-              onChange={(event) =>
-                setForm({ ...form, affectedArea: event.target.value })
-              }
-            />
-          </label>
-          <label>
-            Priority
+            Severity
             <select
-              value={form.priority}
+              value={form.severity}
               onChange={(event) =>
-                setForm({ ...form, priority: event.target.value })
+                setForm({ ...form, severity: event.target.value })
               }
             >
-              {priorities.map((priority) => (
-                <option key={priority}>{priority}</option>
+              {productionFeedbackSeverities.map((severity) => (
+                <option key={severity}>{severity}</option>
               ))}
             </select>
           </label>
           <label>
-            Screenshot URL (optional)
+            Title
             <input
-              value={form.screenshotUrl}
+              required
+              value={form.title}
               onChange={(event) =>
-                setForm({ ...form, screenshotUrl: event.target.value })
+                setForm({ ...form, title: event.target.value })
               }
             />
           </label>
           <label>
-            Message
+            Current page or route
+            <input
+              placeholder="/documents"
+              value={form.currentRoute}
+              onChange={(event) =>
+                setForm({ ...form, currentRoute: event.target.value })
+              }
+            />
+          </label>
+          <label>
+            Description
             <textarea
               required
-              value={form.message}
+              value={form.description}
               onChange={(event) =>
-                setForm({ ...form, message: event.target.value })
+                setForm({ ...form, description: event.target.value })
               }
             />
           </label>

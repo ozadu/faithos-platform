@@ -1,4 +1,4 @@
-import { RequestMethod, ValidationPipe } from '@nestjs/common';
+import { Logger, RequestMethod, ValidationPipe } from '@nestjs/common';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { resolve } from 'node:path';
@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { AppModule } from './app.module';
 import { ApiExceptionFilter } from './common/http-exception.filter';
 import { ResponseInterceptor } from './common/response.interceptor';
+import { EnvironmentService } from './config/environment.service';
 
 function loadLocalEnvironment(): void {
   try {
@@ -21,6 +22,11 @@ async function bootstrap(): Promise<void> {
   loadLocalEnvironment();
 
   const app = await NestFactory.create(AppModule);
+  const logger = new Logger('Bootstrap');
+  const environment = app.get(EnvironmentService);
+  logger.log(
+    `Configuration summary: ${JSON.stringify(environment.safeSummary())}`,
+  );
   app.setGlobalPrefix('api/v1', {
     exclude: [{ method: RequestMethod.GET, path: 'health' }],
   });

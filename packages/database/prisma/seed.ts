@@ -20,6 +20,18 @@ const prisma = new PrismaClient();
 const DEMO_EMAIL = 'admin@demo.faithos.local';
 const DEMO_PASSWORD = 'FaithOS-Demo-2026!';
 
+function productionLike(): boolean {
+  return ['production', 'staging', 'pilot'].includes(
+    (process.env.NODE_ENV ?? 'development').toLowerCase(),
+  );
+}
+
+function demoSeedEnabled(): boolean {
+  const value = process.env.ENABLE_DEMO_SEED;
+  if (value) return value.toLowerCase() === 'true';
+  return !productionLike();
+}
+
 const permissions = [
   ['organizations.read', 'View organization', 'organizations'],
   ['organizations.write', 'Update organization', 'organizations'],
@@ -104,6 +116,13 @@ async function upsertSystemRole(
 }
 
 async function main(): Promise<void> {
+  if (!demoSeedEnabled()) {
+    console.log(
+      'Demo seed disabled. Set ENABLE_DEMO_SEED=true only for local development/UAT seed data.',
+    );
+    return;
+  }
+
   const organization = await prisma.organization.upsert({
     create: {
       address: 'FaithOS Demo Campus, Lagos',

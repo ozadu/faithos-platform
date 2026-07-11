@@ -11,17 +11,44 @@ import {
   CurrentRequestMetadata,
   RequestMetadata,
 } from '../common/request-metadata.decorator';
-import { CompleteSetupStepDto, SetupOrganizationDto } from './dto/setup.dto';
+import {
+  CompleteSetupStepDto,
+  CreateFirstAdminDto,
+  SetupOrganizationDto,
+} from './dto/setup.dto';
 import { SetupService } from './setup.service';
 
 @ApiTags('Setup')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionGuard)
 @Controller('setup')
 export class SetupController {
   constructor(private readonly setup: SetupService) {}
 
+  @Get('first-admin/status')
+  @ApiOperation({ summary: 'Check whether first-admin setup is available' })
+  async firstAdminStatus() {
+    return apiResponse(
+      'First admin setup status retrieved',
+      await this.setup.firstAdminStatus(),
+    );
+  }
+
+  @Post('first-admin')
+  @ApiOperation({
+    summary: 'Create the first organization and administrator if none exists',
+  })
+  async createFirstAdmin(
+    @Body() input: CreateFirstAdminDto,
+    @CurrentRequestMetadata() metadata: RequestMetadata,
+  ) {
+    return apiResponse(
+      'First administrator created',
+      await this.setup.createFirstAdmin(input, metadata),
+    );
+  }
+
   @Get('status')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
   @RequirePermissions('admin.access')
   @ApiOperation({ summary: 'Get first-run setup completion status' })
   async status(@CurrentUser() user: AuthenticatedUser) {
@@ -29,6 +56,7 @@ export class SetupController {
   }
 
   @Post('complete-step')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
   @RequirePermissions('admin.access')
   @ApiOperation({ summary: 'Mark a first-run setup step as reviewed' })
   async completeStep(
@@ -43,6 +71,7 @@ export class SetupController {
   }
 
   @Patch('organization')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
   @RequirePermissions('admin.organization.manage')
   @ApiOperation({ summary: 'Update basic organization setup fields' })
   async updateOrganization(
