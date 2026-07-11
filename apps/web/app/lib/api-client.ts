@@ -448,6 +448,11 @@ export const demoCredentials = {
   password: 'FaithOS-Demo-2026!',
 };
 
+export const demoCredentialsEnabled =
+  process.env.NEXT_PUBLIC_ENABLE_DEMO_CREDENTIALS === 'true' ||
+  (process.env.NODE_ENV !== 'production' &&
+    process.env.NEXT_PUBLIC_ENABLE_DEMO_CREDENTIALS !== 'false');
+
 export function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null;
   return window.localStorage.getItem('faithos.accessToken');

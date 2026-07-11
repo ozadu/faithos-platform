@@ -1197,6 +1197,9 @@ export class AdminService {
   }
 
   async demoCredentials(principal: AuthenticatedUser) {
+    const productionLike = ['production', 'staging', 'pilot'].includes(
+      (process.env.NODE_ENV ?? 'development').toLowerCase(),
+    );
     const users = await this.prisma.user.findMany({
       include: {
         department: { select: { name: true } },
@@ -1215,7 +1218,10 @@ export class AdminService {
     });
 
     return {
-      warning: 'Change or remove demo credentials before production use.',
+      demoCredentialsExistInProduction: productionLike && users.length > 0,
+      warning: productionLike
+        ? 'Demo users should not exist in production-like environments. Remove or rotate them immediately.'
+        : 'Change or remove demo credentials before production use.',
       accounts: users.map((user) => ({
         department: user.department?.name ?? 'Unassigned',
         email: user.email,
@@ -1223,7 +1229,7 @@ export class AdminService {
         loginStatus: user.lastLoginAt ? 'Login verified' : 'Not logged in yet',
         name: `${user.firstName} ${user.lastName}`,
         password:
-          user.email === 'admin@demo.faithos.local'
+          !productionLike && user.email === 'admin@demo.faithos.local'
             ? 'FaithOS-Demo-2026!'
             : 'Password available in deployment handover notes only.',
         role: user.role?.name ?? 'Unassigned',
@@ -1366,17 +1372,60 @@ export class AdminService {
     principal: AuthenticatedUser,
     input: CreatePilotFeedbackDto,
   ) {
+    const submitter =
+      input.name && input.email && input.roleOrDepartment
+        ? null
+        : await this.prisma.user.findFirst({
+            select: {
+              department: { select: { name: true } },
+              email: true,
+              firstName: true,
+              lastName: true,
+              role: { select: { name: true } },
+            },
+            where: {
+              deletedAt: null,
+              id: principal.id,
+              organizationId: principal.organizationId,
+            },
+          });
+    const title = input.title?.trim();
+    const description = input.description?.trim();
+    const message =
+      input.message ??
+      [
+        title,
+        description,
+        input.currentRoute ? `Route: ${input.currentRoute}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n\n');
+    const submitterName =
+      [submitter?.firstName, submitter?.lastName].filter(Boolean).join(' ') ||
+      'Pilot User';
+    if (!message || message.length < 5) {
+      throw new BadRequestException('Feedback description is required');
+    }
+
     return this.prisma.pilotFeedback.create({
       data: {
-        affectedArea: input.affectedArea,
-        email: input.email.toLowerCase(),
-        message: input.message,
-        name: input.name,
+        affectedArea: input.affectedArea ?? input.currentRoute ?? 'General',
+        email: (
+          input.email ??
+          submitter?.email ??
+          'unknown@faithos.local'
+        ).toLowerCase(),
+        message,
+        name: input.name ?? submitterName,
         organizationId: principal.organizationId,
-        priority: input.priority,
-        roleOrDepartment: input.roleOrDepartment,
+        priority: input.priority ?? this.feedbackPriority(input.severity),
+        roleOrDepartment:
+          input.roleOrDepartment ??
+          submitter?.department?.name ??
+          submitter?.role?.name ??
+          'Unassigned',
         submittedByUserId: principal.id,
-        type: input.type,
+        type: input.type ?? this.feedbackType(input.category),
         ...(input.screenshotUrl ? { screenshotUrl: input.screenshotUrl } : {}),
       },
     });
@@ -1617,6 +1666,27 @@ export class AdminService {
       return 'Review dashboards, reports, documents, and UAT feedback without changing configuration.';
     }
     return 'Create documents, route workflow tasks, review notifications, and submit pilot feedback.';
+  }
+
+  private feedbackPriority(severity?: string) {
+    const map: Record<string, string> = {
+      CRITICAL: 'Critical',
+      HIGH: 'High',
+      LOW: 'Low',
+      MEDIUM: 'Medium',
+    };
+    return severity ? (map[severity] ?? 'Medium') : 'Medium';
+  }
+
+  private feedbackType(category?: string) {
+    const map: Record<string, string> = {
+      BUG: 'Bug',
+      CONFUSING_UI: 'Confusion',
+      FEATURE_REQUEST: 'Feature request',
+      OTHER: 'Other',
+      PERFORMANCE: 'Process improvement',
+    };
+    return category ? (map[category] ?? 'Other') : 'Other';
   }
 
   private packItem(

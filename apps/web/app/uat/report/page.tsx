@@ -68,6 +68,12 @@ const working = [
   'Browser-accessible backup runbook, pilot docs, trial timeline, troubleshooting, and handover guide',
   'Sprint 8 Prisma migration, seed data, and permissions for pilot trial records',
   'Sprint 8 UAT dashboard links',
+  'Production readiness section on /uat',
+  'First-admin setup endpoint and guarded setup page behavior',
+  'Production environment validation for required variables and unsafe demo JWT values',
+  'Demo seed and demo credential display controlled by environment flags',
+  'Pilot database backup and restore helper scripts',
+  'Improved /health response with database and Redis status',
 ];
 
 const partial = [
@@ -90,6 +96,8 @@ const partial = [
   'Pilot issue tracker is intentionally lightweight and does not replace a full external support desk.',
   'Backup runbook scripts are operator-triggered helpers; automated backup scheduling is future work.',
   'Demo credential display is limited to seeded local pilot accounts and must be removed or rotated before production.',
+  'First-admin setup is intentionally simple and self-disables after an active administrator exists.',
+  'Backup and restore scripts remain pilot helpers and should be wrapped by organization-specific disaster recovery procedures before production.',
 ];
 
 const missingBackend = [
@@ -309,6 +317,52 @@ export default function UatReportPage() {
           <li>
             Demo credentials are for local pilot/testing only and must be
             rotated or removed before production use.
+          </li>
+        </ul>
+      </section>
+      <section className="panel">
+        <h2>Production readiness checklist</h2>
+        <ul>
+          <li>
+            Demo seed disabled in production-like environments with{' '}
+            <code>ENABLE_DEMO_SEED=false</code>.
+          </li>
+          <li>
+            Demo credentials hidden with{' '}
+            <code>NEXT_PUBLIC_ENABLE_DEMO_CREDENTIALS=false</code>.
+          </li>
+          <li>
+            Production validation requires database, Redis, JWT, app URL, and
+            SMTP configuration when email is enabled.
+          </li>
+          <li>
+            First admin setup is available only when no active administrator
+            exists.
+          </li>
+          <li>
+            Backup/restore scripts and documentation exist for pilot database
+            operations.
+          </li>
+          <li>Pilot feedback submission and admin listing are available.</li>
+          <li>
+            Health endpoint reports API, database, Redis, status, and timestamp
+            without exposing secrets.
+          </li>
+        </ul>
+      </section>
+      <section className="panel">
+        <h2>v0.8.1 known pilot limitations</h2>
+        <ul>
+          <li>
+            Feedback remains pilot-level and is not a full customer support
+            system.
+          </li>
+          <li>
+            Backup scripts are helpers, not a full automated backup platform.
+          </li>
+          <li>
+            Production email provider selection and external monitoring remain
+            deployment responsibilities.
           </li>
         </ul>
       </section>

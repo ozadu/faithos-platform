@@ -1,5 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsOptional, IsString, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsIn,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 const setupSteps = [
   'organization',
@@ -45,4 +51,35 @@ export class SetupOrganizationDto {
   @IsOptional()
   @IsString()
   timezone?: string;
+}
+
+export class CreateFirstAdminDto {
+  @ApiProperty({ example: 'FaithOS Pilot Organization' })
+  @IsString()
+  @MinLength(2)
+  organizationName!: string;
+
+  @ApiPropertyOptional({ example: 'admin@example.org' })
+  @IsOptional()
+  @IsEmail()
+  organizationEmail?: string;
+
+  @ApiProperty({ example: 'Ada' })
+  @IsString()
+  @MinLength(1)
+  firstName!: string;
+
+  @ApiProperty({ example: 'Okafor' })
+  @IsString()
+  @MinLength(1)
+  lastName!: string;
+
+  @ApiProperty({ example: 'admin@example.org' })
+  @IsEmail()
+  email!: string;
+
+  @ApiProperty({ minLength: 12 })
+  @IsString()
+  @MinLength(12)
+  password!: string;
 }
