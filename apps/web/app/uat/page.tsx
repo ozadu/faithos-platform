@@ -1,7 +1,11 @@
 import Link from 'next/link';
 
 import { PlannedBadge } from '../components/planned-badge';
-import { apiBaseUrl, demoCredentials } from '../lib/api-client';
+import {
+  apiBaseUrl,
+  demoCredentials,
+  demoCredentialsEnabled,
+} from '../lib/api-client';
 
 const featureLinks = [
   ['Login', '/login', 'Real API login using seeded admin account'],
@@ -189,6 +193,17 @@ const sprint8Links = [
   [`${apiBaseUrl}/api/docs`, 'Swagger Documentation', 'Sprint 8 endpoint docs'],
 ] as const;
 
+const productionReadinessLinks = [
+  ['/setup', 'First Admin Setup', 'Create first admin only when none exists'],
+  ['/feedback', 'Pilot Feedback', 'Submit controlled pilot feedback'],
+  ['/uat/report', 'UAT Report', 'Production readiness checklist and limits'],
+  ['/dashboard', 'Dashboard', 'Operational landing page'],
+  ['/notifications', 'Notifications', 'Notification center'],
+  ['/reports', 'Reports', 'Reporting overview'],
+  [`${apiBaseUrl}/api/docs`, 'Swagger', 'API documentation'],
+  ['http://localhost:8025', 'Mailpit', 'Development SMTP inbox'],
+] as const;
+
 export default function UatDashboardPage() {
   return (
     <section className="stack">
@@ -203,22 +218,29 @@ export default function UatDashboardPage() {
 
       <section className="panel">
         <h2>Demo administrator</h2>
-        <dl className="credentials">
-          <div>
-            <dt>Email</dt>
-            <dd>
-              <code>{demoCredentials.email}</code>
-            </dd>
-          </div>
-          <div>
-            <dt>Password</dt>
-            <dd>
-              <code>{demoCredentials.password}</code>
-            </dd>
-          </div>
-        </dl>
+        {demoCredentialsEnabled ? (
+          <dl className="credentials">
+            <div>
+              <dt>Email</dt>
+              <dd>
+                <code>{demoCredentials.email}</code>
+              </dd>
+            </div>
+            <div>
+              <dt>Password</dt>
+              <dd>
+                <code>{demoCredentials.password}</code>
+              </dd>
+            </div>
+          </dl>
+        ) : (
+          <p>
+            Demo credentials are hidden because demo credential exposure is not
+            enabled for this environment.
+          </p>
+        )}
         <Link className="button" href="/login">
-          Login with demo account
+          {demoCredentialsEnabled ? 'Login with demo account' : 'Open login'}
         </Link>
       </section>
 
@@ -338,6 +360,31 @@ export default function UatDashboardPage() {
         <h2>Sprint 8 Pilot Deployment & Real-World Trial Pack</h2>
         <div className="uat-grid">
           {sprint8Links.map(([href, label, description]) => {
+            const external = href.startsWith('http');
+            return (
+              <Link
+                className="uat-link"
+                href={href}
+                key={label}
+                target={external ? '_blank' : undefined}
+              >
+                <strong>{label}</strong>
+                <span>{description}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="panel">
+        <h2>Production Readiness v0.8.1</h2>
+        <p>
+          Demo credentials are development-only. Production-like environments
+          should set <code>ENABLE_DEMO_SEED=false</code> and{' '}
+          <code>NEXT_PUBLIC_ENABLE_DEMO_CREDENTIALS=false</code>.
+        </p>
+        <div className="uat-grid">
+          {productionReadinessLinks.map(([href, label, description]) => {
             const external = href.startsWith('http');
             return (
               <Link

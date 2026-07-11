@@ -7,6 +7,7 @@ import {
   apiBaseUrl,
   apiFetch,
   demoCredentials,
+  demoCredentialsEnabled,
   exportCsv,
   type AdminOrganization,
 } from '../lib/api-client';
@@ -28,6 +29,11 @@ type SetupStatus = {
   systemSettingsReviewed: boolean;
   usersConfigured: boolean;
   workflowAssignmentsConfigured: boolean;
+};
+
+type FirstAdminStatus = {
+  available: boolean;
+  reason: string;
 };
 
 type UserImportPreview = {
@@ -99,6 +105,8 @@ const setupSteps: Array<[keyof SetupStatus, string, string, string]> = [
 ];
 
 export function SetupWizardPage() {
+  const [firstAdminStatus, setFirstAdminStatus] =
+    useState<FirstAdminStatus | null>(null);
   const [status, setStatus] = useState<SetupStatus | null>(null);
   const [organization, setOrganization] = useState<AdminOrganization | null>(
     null,
@@ -120,8 +128,21 @@ export function SetupWizardPage() {
   }
 
   useEffect(() => {
-    void load().catch((error: Error) => setMessage(error.message));
+    void apiFetch<FirstAdminStatus>('/setup/first-admin/status')
+      .then((response) => {
+        setFirstAdminStatus(response.data);
+        if (!response.data.available) {
+          return load();
+        }
+      })
+      .catch((error: Error) => setMessage(error.message));
   }, []);
+
+  if (!firstAdminStatus) return <p>Checking first-admin setup status...</p>;
+
+  if (firstAdminStatus?.available) {
+    return <FirstAdminSetupPage reason={firstAdminStatus.reason} />;
+  }
 
   async function saveOrganization(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -234,8 +255,86 @@ export function SetupWizardPage() {
   );
 }
 
+function FirstAdminSetupPage({ reason }: { reason: string }) {
+  const [message, setMessage] = useState(reason);
+  const [busy, setBusy] = useState(false);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    const form = new FormData(event.currentTarget);
+    try {
+      await apiFetch('/setup/first-admin', {
+        body: JSON.stringify(Object.fromEntries(form.entries())),
+        method: 'POST',
+      });
+      setMessage(
+        'First administrator created. You can now log in with the account you created.',
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Setup failed.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="stack">
+      <div className="hero">
+        <p className="eyebrow">First-Time Setup</p>
+        <h1>Create the first administrator</h1>
+        <p>
+          This setup path is available only while no active administrator
+          exists. It disables itself after the first admin account is created.
+        </p>
+      </div>
+      <p>{message}</p>
+      <form className="panel form-grid" onSubmit={submit}>
+        <label>
+          Organization name
+          <input name="organizationName" required />
+        </label>
+        <label>
+          Organization email
+          <input name="organizationEmail" type="email" />
+        </label>
+        <label>
+          First name
+          <input name="firstName" required />
+        </label>
+        <label>
+          Last name
+          <input name="lastName" required />
+        </label>
+        <label>
+          Admin email
+          <input name="email" required type="email" />
+        </label>
+        <label>
+          Password
+          <input minLength={12} name="password" required type="password" />
+        </label>
+        <p className="full">
+          Password must be at least 12 characters and include uppercase,
+          lowercase, number, and symbol characters.
+        </p>
+        <div className="full actions">
+          <button disabled={busy} type="submit">
+            {busy ? 'Creating admin...' : 'Create first administrator'}
+          </button>
+          <Link className="button secondary" href="/login">
+            Go to login
+          </Link>
+        </div>
+      </form>
+    </section>
+  );
+}
+
 export function ForgotPasswordPage() {
-  const [email, setEmail] = useState(demoCredentials.email);
+  const [email, setEmail] = useState(
+    demoCredentialsEnabled ? demoCredentials.email : '',
+  );
   const [message, setMessage] = useState(
     'Enter your email. If an active account exists, Mailpit will receive reset instructions.',
   );

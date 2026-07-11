@@ -8,6 +8,7 @@ import {
   apiFetch,
   clearSession,
   demoCredentials,
+  demoCredentialsEnabled,
   saveSession,
   type DemoUser,
 } from '../lib/api-client';
@@ -21,16 +22,23 @@ type LoginResponse = {
 export default function LoginPage() {
   const router = useRouter();
   const [next, setNext] = useState('/dashboard');
-  const [email, setEmail] = useState(demoCredentials.email);
-  const [password, setPassword] = useState(demoCredentials.password);
-  const [message, setMessage] = useState('Use the seeded demo administrator.');
+  const [email, setEmail] = useState(
+    demoCredentialsEnabled ? demoCredentials.email : '',
+  );
+  const [password, setPassword] = useState(
+    demoCredentialsEnabled ? demoCredentials.password : '',
+  );
+  const defaultMessage = demoCredentialsEnabled
+    ? 'Use the seeded demo administrator.'
+    : 'Enter your FaithOS administrator credentials.';
+  const [message, setMessage] = useState(defaultMessage);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setNext(params.get('next') ?? '/dashboard');
-    setMessage(params.get('message') ?? 'Use the seeded demo administrator.');
-  }, []);
+    setMessage(params.get('message') ?? defaultMessage);
+  }, [defaultMessage]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
