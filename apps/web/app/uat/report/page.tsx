@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 import { PlannedBadge } from '../../components/planned-badge';
 
 const working = [
@@ -82,6 +84,8 @@ const working = [
   'Deployment readiness page with safe environment and service checks',
   'Backup readiness page linking dry-run instructions without browser-triggered backup execution',
   'Admin feedback triage filters for category, severity, and expanded status values',
+  'Pilot deployment preparation documentation pack under docs/pilot-deployment',
+  'Pilot deployment section on /uat with installer-facing readiness links',
 ];
 
 const partial = [
@@ -118,6 +122,73 @@ const missingBackend = [
   'Production email provider integration',
   'OCR and full-text indexing',
 ];
+
+const pilotDeploymentDocs = [
+  [
+    'Overview',
+    'https://github.com/ozadu/faithos-platform/blob/develop/docs/pilot-deployment/overview.md',
+  ],
+  [
+    'Installation checklist',
+    'https://github.com/ozadu/faithos-platform/blob/develop/docs/pilot-deployment/installation-checklist.md',
+  ],
+  [
+    'Environment checklist',
+    'https://github.com/ozadu/faithos-platform/blob/develop/docs/pilot-deployment/environment-checklist.md',
+  ],
+  [
+    'First admin setup',
+    'https://github.com/ozadu/faithos-platform/blob/develop/docs/pilot-deployment/first-admin-setup.md',
+  ],
+  [
+    'Organization setup',
+    'https://github.com/ozadu/faithos-platform/blob/develop/docs/pilot-deployment/organization-setup.md',
+  ],
+  [
+    'User onboarding',
+    'https://github.com/ozadu/faithos-platform/blob/develop/docs/pilot-deployment/user-onboarding.md',
+  ],
+  [
+    'Department setup',
+    'https://github.com/ozadu/faithos-platform/blob/develop/docs/pilot-deployment/department-setup.md',
+  ],
+  [
+    'Workflow setup',
+    'https://github.com/ozadu/faithos-platform/blob/develop/docs/pilot-deployment/workflow-setup.md',
+  ],
+  [
+    'Document routing test',
+    'https://github.com/ozadu/faithos-platform/blob/develop/docs/pilot-deployment/document-routing-test.md',
+  ],
+  [
+    'Backup/restore test',
+    'https://github.com/ozadu/faithos-platform/blob/develop/docs/pilot-deployment/backup-restore-test.md',
+  ],
+  [
+    'Pilot UAT script',
+    'https://github.com/ozadu/faithos-platform/blob/develop/docs/pilot-deployment/pilot-uat-script.md',
+  ],
+  [
+    'Feedback process',
+    'https://github.com/ozadu/faithos-platform/blob/develop/docs/pilot-deployment/pilot-feedback-process.md',
+  ],
+  [
+    'Success criteria',
+    'https://github.com/ozadu/faithos-platform/blob/develop/docs/pilot-deployment/pilot-success-criteria.md',
+  ],
+  [
+    'Rollout plan',
+    'https://github.com/ozadu/faithos-platform/blob/develop/docs/pilot-deployment/pilot-rollout-plan.md',
+  ],
+  [
+    'Issue log template',
+    'https://github.com/ozadu/faithos-platform/blob/develop/docs/pilot-deployment/pilot-issue-log-template.md',
+  ],
+  [
+    'Final report template',
+    'https://github.com/ozadu/faithos-platform/blob/develop/docs/pilot-deployment/pilot-final-report-template.md',
+  ],
+] as const;
 
 export default function UatReportPage() {
   return (
@@ -428,6 +499,68 @@ export default function UatReportPage() {
           </li>
           <li>Feedback remains pilot-level triage, not a full support desk.</li>
         </ul>
+      </section>
+      <section className="panel">
+        <h2>Pilot deployment readiness summary</h2>
+        <p>
+          FaithOS v0.9.0 is ready to enter one controlled pilot organization
+          only after installation, environment, first-admin, organization,
+          department, user, role, workflow, backup, restore, and UAT checks are
+          complete.
+        </p>
+        <ul>
+          <li>Use /pilot/checklist as the operational launch gate.</li>
+          <li>Use /pilot/uat as the real-user test evidence capture page.</li>
+          <li>
+            Use /admin/deployment-readiness to confirm environment and service
+            safety without exposing secrets.
+          </li>
+          <li>
+            Use /admin/users/onboarding and /admin/permission-audit before
+            allowing non-admin staff into the pilot.
+          </li>
+          <li>
+            Use /admin/backup-readiness after the technical installer has run
+            backup and restore dry-runs outside the browser.
+          </li>
+        </ul>
+      </section>
+      <section className="panel">
+        <h2>Pilot deployment documentation</h2>
+        <p>
+          The installer-facing deployment pack lives in{' '}
+          <code>docs/pilot-deployment/</code>.
+        </p>
+        <ul>
+          {pilotDeploymentDocs.map(([label, href]) => (
+            <li key={label}>
+              <Link href={href} target="_blank">
+                {label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+      <section className="panel">
+        <h2>Recommended next actions</h2>
+        <ol>
+          <li>Confirm Docker, WSL2, Git, repository, and `.env` readiness.</li>
+          <li>
+            Set <code>ENABLE_DEMO_SEED=false</code> for pilot use.
+          </li>
+          <li>
+            Complete first admin, organization, department, user, and role
+            setup.
+          </li>
+          <li>Review sensitive permissions and remove unexpected access.</li>
+          <li>Run backup and restore dry-runs before live pilot usage.</li>
+          <li>
+            Run the pilot UAT script with real staff and capture failures.
+          </li>
+          <li>
+            Track issues in the pilot issue log and summarize the final report.
+          </li>
+        </ol>
       </section>
       <section className="panel">
         <h2>Broken links, runtime errors, API errors</h2>
