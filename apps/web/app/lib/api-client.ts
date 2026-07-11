@@ -38,6 +38,7 @@ export type Permission = {
 export type AdminOrganization = {
   active?: boolean;
   address?: string | null;
+  country?: string | null;
   defaultCurrency?: string;
   email: string;
   id: string;
@@ -45,6 +46,7 @@ export type AdminOrganization = {
   name: string;
   phone?: string | null;
   shortName?: string | null;
+  slug?: string;
   status: string;
   timezone: string;
   website?: string | null;

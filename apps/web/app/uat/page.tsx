@@ -204,6 +204,37 @@ const productionReadinessLinks = [
   ['http://localhost:8025', 'Mailpit', 'Development SMTP inbox'],
 ] as const;
 
+const pilotReleaseCandidateLinks = [
+  ['/pilot/checklist', 'Pilot Setup Checklist', 'Required setup checks'],
+  ['/pilot/uat', 'Pilot UAT Runner', 'Pass/fail pilot test flows'],
+  ['/admin/organization', 'Organization Profile', 'Profile readiness fields'],
+  [
+    '/admin/users/onboarding',
+    'User Onboarding',
+    'Role, department, activation, email, and login readiness',
+  ],
+  [
+    '/admin/permission-audit',
+    'Permission Audit',
+    'Sensitive permission and role review',
+  ],
+  ['/admin/feedback', 'Feedback Review', 'Filter and triage pilot feedback'],
+  [
+    '/admin/backup-readiness',
+    'Backup Readiness',
+    'Backup and restore dry-run verification',
+  ],
+  [
+    '/admin/deployment-readiness',
+    'Deployment Readiness',
+    'Environment and service checks',
+  ],
+  ['/dashboard', 'Dashboard', 'Operational workspace'],
+  ['/reports', 'Reports', 'Management summaries and CSV exports'],
+  [`${apiBaseUrl}/api/docs`, 'Swagger', 'API documentation'],
+  ['http://localhost:8025', 'Mailpit', 'Development SMTP inbox'],
+] as const;
+
 export default function UatDashboardPage() {
   return (
     <section className="stack">
@@ -385,6 +416,30 @@ export default function UatDashboardPage() {
         </p>
         <div className="uat-grid">
           {productionReadinessLinks.map(([href, label, description]) => {
+            const external = href.startsWith('http');
+            return (
+              <Link
+                className="uat-link"
+                href={href}
+                key={label}
+                target={external ? '_blank' : undefined}
+              >
+                <strong>{label}</strong>
+                <span>{description}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="panel">
+        <h2>v0.9.0 Pilot Release Candidate</h2>
+        <p>
+          Use these pages to prove FaithOS is installable, explainable,
+          recoverable, and usable by non-technical pilot staff before release.
+        </p>
+        <div className="uat-grid">
+          {pilotReleaseCandidateLinks.map(([href, label, description]) => {
             const external = href.startsWith('http');
             return (
               <Link
