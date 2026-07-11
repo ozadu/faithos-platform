@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsEmail,
   IsIn,
   IsOptional,
@@ -31,7 +32,13 @@ const productionFeedbackSeverities = [
   'HIGH',
   'CRITICAL',
 ] as const;
-const feedbackStatuses = ['NEW', 'REVIEWED', 'RESOLVED'] as const;
+const feedbackStatuses = [
+  'NEW',
+  'REVIEWED',
+  'PLANNED',
+  'RESOLVED',
+  'WONT_FIX',
+] as const;
 const issueSources = [
   'Manual',
   'Feedback',
@@ -135,6 +142,16 @@ export class PilotFeedbackQueryDto {
   @IsOptional()
   @IsIn(feedbackStatuses)
   status?: string;
+
+  @ApiPropertyOptional({ enum: productionFeedbackCategories })
+  @IsOptional()
+  @IsIn(productionFeedbackCategories)
+  category?: string;
+
+  @ApiPropertyOptional({ enum: productionFeedbackSeverities })
+  @IsOptional()
+  @IsIn(productionFeedbackSeverities)
+  severity?: string;
 }
 
 export class UpdatePilotFeedbackDto {
@@ -147,6 +164,18 @@ export class UpdatePilotFeedbackDto {
   @IsOptional()
   @IsString()
   adminNote?: string;
+}
+
+export class UpdatePilotChecklistItemDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  acknowledged?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  note?: string;
 }
 
 export class CreatePilotIssueDto {

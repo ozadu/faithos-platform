@@ -74,6 +74,14 @@ const working = [
   'Demo seed and demo credential display controlled by environment flags',
   'Pilot database backup and restore helper scripts',
   'Improved /health response with database and Redis status',
+  'v0.9.0 pilot setup checklist with derived readiness and manual acknowledgements',
+  'v0.9.0 pilot UAT runner with local browser pass/fail notes',
+  'Organization profile readiness indicators for pilot-required fields',
+  'User onboarding readiness view for role, department, status, email, and login checks',
+  'Role and permission audit view with sensitive permission warnings',
+  'Deployment readiness page with safe environment and service checks',
+  'Backup readiness page linking dry-run instructions without browser-triggered backup execution',
+  'Admin feedback triage filters for category, severity, and expanded status values',
 ];
 
 const partial = [
@@ -98,6 +106,8 @@ const partial = [
   'Demo credential display is limited to seeded local pilot accounts and must be removed or rotated before production.',
   'First-admin setup is intentionally simple and self-disables after an active administrator exists.',
   'Backup and restore scripts remain pilot helpers and should be wrapped by organization-specific disaster recovery procedures before production.',
+  'v0.9.0 UAT runner results are stored in local browser state for this sprint rather than a shared database table.',
+  'Pilot checklist manual acknowledgements are lightweight system settings, not a compliance evidence repository.',
 ];
 
 const missingBackend = [
@@ -364,6 +374,59 @@ export default function UatReportPage() {
             Production email provider selection and external monitoring remain
             deployment responsibilities.
           </li>
+        </ul>
+      </section>
+      <section className="panel">
+        <h2>v0.9.0 release-candidate checklist</h2>
+        <ul>
+          <li>Open /pilot/checklist and clear all required blockers.</li>
+          <li>Complete /pilot/uat flows and record pass/fail notes.</li>
+          <li>
+            Verify /admin/users/onboarding shows no unassigned pilot users.
+          </li>
+          <li>Review /admin/permission-audit for sensitive permissions.</li>
+          <li>Verify /admin/deployment-readiness exposes no secret values.</li>
+          <li>Run backup and restore dry-runs using documented scripts.</li>
+          <li>Confirm /admin/feedback filters and status updates work.</li>
+        </ul>
+      </section>
+      <section className="panel">
+        <h2>Pilot readiness status</h2>
+        <p>
+          FaithOS is ready for controlled pilot testing only after all required
+          checklist blockers are cleared, UAT has passed, and backup/restore
+          dry-runs have been verified by the technical installer.
+        </p>
+      </section>
+      <section className="panel">
+        <h2>Required blockers and warnings</h2>
+        <ul>
+          <li>
+            Blocked: missing first admin, organization profile, users, roles,
+            departments, backup test, restore test, or UAT completion.
+          </li>
+          <li>
+            Warning: SMTP/Mailpit unreachable, users not logged in, demo account
+            risk, or non-admin roles with sensitive permissions.
+          </li>
+          <li>
+            Next action: use /pilot/checklist as the single pilot launch gate.
+          </li>
+        </ul>
+      </section>
+      <section className="panel">
+        <h2>v0.9.0 known pilot limitations</h2>
+        <ul>
+          <li>UAT runner storage is local to the browser.</li>
+          <li>
+            Backup/restore verification is documentation-backed and
+            operator-run.
+          </li>
+          <li>
+            Permission audit highlights obvious risks; it is not a formal
+            governance engine.
+          </li>
+          <li>Feedback remains pilot-level triage, not a full support desk.</li>
         </ul>
       </section>
       <section className="panel">

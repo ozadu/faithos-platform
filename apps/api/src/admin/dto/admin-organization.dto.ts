@@ -26,6 +26,11 @@ export class UpdateAdminOrganizationDto {
   @IsString()
   address?: string;
 
+  @ApiPropertyOptional({ example: 'Nigeria' })
+  @IsOptional()
+  @IsString()
+  country?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsEmail()
