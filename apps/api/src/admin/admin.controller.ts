@@ -64,6 +64,7 @@ import {
   CreatePilotIssueDto,
   PilotFeedbackQueryDto,
   PilotIssueQueryDto,
+  UpdatePilotChecklistItemDto,
   UpdatePilotFeedbackDto,
   UpdatePilotIssueDto,
 } from './dto/pilot-trial.dto';
@@ -580,6 +581,22 @@ export class AdminController {
     );
   }
 
+  @Patch('feedback/:id/status')
+  @RequirePermissions('pilot.feedback.manage')
+  @ApiParam({ format: 'uuid', name: 'id' })
+  @ApiOperation({ summary: 'Update pilot feedback status' })
+  async updateFeedbackStatus(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() input: UpdatePilotFeedbackDto,
+    @CurrentRequestMetadata() metadata: RequestMetadata,
+  ) {
+    return apiResponse(
+      'Pilot feedback status updated',
+      await this.admin.updateFeedback(user, id, input, metadata),
+    );
+  }
+
   @Patch('feedback/:id')
   @RequirePermissions('pilot.feedback.manage')
   @ApiParam({ format: 'uuid', name: 'id' })
@@ -593,6 +610,64 @@ export class AdminController {
     return apiResponse(
       'Pilot feedback updated',
       await this.admin.updateFeedback(user, id, input, metadata),
+    );
+  }
+
+  @Get('user-onboarding')
+  @RequirePermissions('admin.users.manage')
+  @ApiOperation({ summary: 'Get pilot user onboarding readiness' })
+  async userOnboarding(@CurrentUser() user: AuthenticatedUser) {
+    return apiResponse(
+      'User onboarding readiness retrieved',
+      await this.admin.userOnboardingReadiness(user),
+    );
+  }
+
+  @Get('permission-audit')
+  @RequirePermissions('admin.permissions.view')
+  @ApiOperation({ summary: 'Get pilot role and permission audit' })
+  async permissionAudit(@CurrentUser() user: AuthenticatedUser) {
+    return apiResponse(
+      'Permission audit retrieved',
+      await this.admin.permissionAudit(user),
+    );
+  }
+
+  @Get('deployment-readiness')
+  @RequirePermissions('admin.systemSettings.manage')
+  @ApiOperation({ summary: 'Get pilot deployment readiness summary' })
+  async deploymentReadiness(@CurrentUser() user: AuthenticatedUser) {
+    return apiResponse(
+      'Deployment readiness retrieved',
+      await this.admin.deploymentReadiness(user),
+    );
+  }
+
+  @Get('backup-readiness')
+  @RequirePermissions('pilot.backup.view')
+  @ApiOperation({ summary: 'Get backup and restore pilot readiness guidance' })
+  async backupReadiness(@CurrentUser() user: AuthenticatedUser) {
+    return apiResponse(
+      'Backup readiness retrieved',
+      await this.admin.backupReadiness(user),
+    );
+  }
+
+  @Patch('pilot-checklist/:id')
+  @RequirePermissions('admin.pilotReadiness.view')
+  @ApiParam({ name: 'id' })
+  @ApiOperation({
+    summary: 'Acknowledge a manually verified pilot checklist item',
+  })
+  async updatePilotChecklistItem(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() input: UpdatePilotChecklistItemDto,
+    @CurrentRequestMetadata() metadata: RequestMetadata,
+  ) {
+    return apiResponse(
+      'Pilot checklist updated',
+      await this.admin.updatePilotChecklistItem(user, id, input, metadata),
     );
   }
 

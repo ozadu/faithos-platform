@@ -80,6 +80,7 @@ const productionFeedbackCategories = [
   'OTHER',
 ];
 const productionFeedbackSeverities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+const feedbackStatuses = ['NEW', 'REVIEWED', 'PLANNED', 'RESOLVED', 'WONT_FIX'];
 
 export function PilotDeploymentPage() {
   const [summary, setSummary] = useState<PilotDeployment | null>(null);
@@ -390,10 +391,18 @@ export function FeedbackPage() {
 
 export function AdminFeedbackPage() {
   const [records, setRecords] = useState<FeedbackRecord[]>([]);
+  const [filters, setFilters] = useState({
+    category: '',
+    severity: '',
+    status: '',
+  });
   const [message, setMessage] = useState('Loading pilot feedback...');
+  const query = new URLSearchParams(
+    Object.entries(filters).filter(([, value]) => value),
+  ).toString();
 
   const load = () =>
-    apiFetch<FeedbackRecord[]>('/admin/feedback')
+    apiFetch<FeedbackRecord[]>(`/admin/feedback${query ? `?${query}` : ''}`)
       .then((response) => {
         setRecords(response.data);
         setMessage('Loaded.');
@@ -402,10 +411,10 @@ export function AdminFeedbackPage() {
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [query]);
 
   async function update(id: string, status: string) {
-    await apiFetch(`/admin/feedback/${id}`, {
+    await apiFetch(`/admin/feedback/${id}/status`, {
       body: JSON.stringify({ status }),
       method: 'PATCH',
     });
@@ -421,6 +430,50 @@ export function AdminFeedbackPage() {
           body="Review feedback submitted by pilot users and mark triage status."
         />
         <p>{message}</p>
+        <section className="panel form-grid">
+          <label>
+            Category
+            <select
+              value={filters.category}
+              onChange={(event) =>
+                setFilters({ ...filters, category: event.target.value })
+              }
+            >
+              <option value="">Any category</option>
+              {productionFeedbackCategories.map((category) => (
+                <option key={category}>{category}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Severity
+            <select
+              value={filters.severity}
+              onChange={(event) =>
+                setFilters({ ...filters, severity: event.target.value })
+              }
+            >
+              <option value="">Any severity</option>
+              {productionFeedbackSeverities.map((severity) => (
+                <option key={severity}>{severity}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Status
+            <select
+              value={filters.status}
+              onChange={(event) =>
+                setFilters({ ...filters, status: event.target.value })
+              }
+            >
+              <option value="">Any status</option>
+              {feedbackStatuses.map((status) => (
+                <option key={status}>{status}</option>
+              ))}
+            </select>
+          </label>
+        </section>
         <section className="panel stack">
           {records.map((record) => (
             <article className="card" key={record.id}>
@@ -435,21 +488,22 @@ export function AdminFeedbackPage() {
                 Priority: {record.priority} · Status: {record.status}
               </p>
               <div className="actions">
-                <button
-                  type="button"
-                  onClick={() => void update(record.id, 'REVIEWED')}
-                >
-                  Mark reviewed
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void update(record.id, 'RESOLVED')}
-                >
-                  Mark resolved
-                </button>
+                {feedbackStatuses.map((status) => (
+                  <button
+                    disabled={record.status === status}
+                    key={status}
+                    type="button"
+                    onClick={() => void update(record.id, status)}
+                  >
+                    {status}
+                  </button>
+                ))}
               </div>
             </article>
           ))}
+          {records.length === 0 ? (
+            <p>No feedback matches these filters.</p>
+          ) : null}
         </section>
       </section>
     </AuthRequired>
@@ -708,6 +762,30 @@ export function PilotDocsPage() {
         [
           'Handover guide',
           'docs/pilot/handover-guide.md: responsibilities, routines, support, and go/no-go criteria.',
+        ],
+        [
+          'Release candidate',
+          'docs/pilot/release-candidate.md: v0.9.0 pilot release-candidate scope and entry criteria.',
+        ],
+        [
+          'Pilot plan',
+          'docs/pilot/pilot-plan.md: practical setup, trial, feedback, and decision sequence.',
+        ],
+        [
+          'Training guide',
+          'docs/pilot/training-guide.md: staff and administrator training steps.',
+        ],
+        [
+          'Test script',
+          'docs/pilot/test-script.md: flows to execute through /pilot/uat.',
+        ],
+        [
+          'Known limitations',
+          'docs/pilot/known-limitations.md: pilot boundaries and out-of-scope modules.',
+        ],
+        [
+          'Go-live checklist',
+          'docs/pilot/go-live-checklist.md: final controlled pilot launch gate.',
         ],
       ]}
     />

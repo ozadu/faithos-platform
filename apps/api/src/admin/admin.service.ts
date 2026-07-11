@@ -56,6 +56,7 @@ import {
   CreatePilotIssueDto,
   PilotFeedbackQueryDto,
   PilotIssueQueryDto,
+  UpdatePilotChecklistItemDto,
   UpdatePilotFeedbackDto,
   UpdatePilotIssueDto,
 } from './dto/pilot-trial.dto';
@@ -141,6 +142,27 @@ const adminOnboardingItems = [
     'Admin',
   ],
 ] as const;
+
+const pilotChecklistManualKeys = new Set([
+  'mailSettingsVerified',
+  'backupTested',
+  'restoreTested',
+  'uatCompleted',
+]);
+
+const sensitivePermissionTerms = [
+  'users',
+  'roles',
+  'permissions',
+  'reports',
+  'workflow',
+  'setup',
+  'feedback',
+  'system',
+  'settings',
+];
+
+type ReadinessStatus = 'BLOCKED' | 'READY' | 'WARNING';
 
 @Injectable()
 export class AdminService {
@@ -1132,6 +1154,473 @@ export class AdminService {
     return { complete: checks.every((check) => check.complete), items: checks };
   }
 
+  async pilotChecklist(principal: AuthenticatedUser) {
+    const organizationId = principal.organizationId;
+    const [
+      organization,
+      departments,
+      users,
+      activeUsers,
+      usersWithoutRole,
+      usersWithoutDepartment,
+      activeRoles,
+      firstAdminCount,
+      feedbackCount,
+      manualRows,
+    ] = await Promise.all([
+      this.organization(principal),
+      this.prisma.department.count({
+        where: { active: true, deletedAt: null, organizationId },
+      }),
+      this.prisma.user.count({ where: { deletedAt: null, organizationId } }),
+      this.prisma.user.count({
+        where: { deletedAt: null, organizationId, status: UserStatus.ACTIVE },
+      }),
+      this.prisma.user.count({
+        where: {
+          deletedAt: null,
+          organizationId,
+          roleId: null,
+          status: UserStatus.ACTIVE,
+        },
+      }),
+      this.prisma.user.count({
+        where: {
+          deletedAt: null,
+          departmentId: null,
+          organizationId,
+          status: UserStatus.ACTIVE,
+        },
+      }),
+      this.prisma.role.count({ where: { active: true, organizationId } }),
+      this.prisma.user.count({
+        where: {
+          deletedAt: null,
+          organizationId,
+          role: {
+            rolePermissions: {
+              some: { permission: { code: 'admin.access' } },
+            },
+          },
+          status: UserStatus.ACTIVE,
+        },
+      }),
+      this.prisma.pilotFeedback.count({ where: { organizationId } }),
+      this.prisma.systemSetting.findMany({
+        where: {
+          key: { startsWith: 'pilot.v090.checklist.' },
+          organizationId,
+        },
+      }),
+    ]);
+    const manual = new Map(
+      manualRows.map((row) => [
+        row.key.replace('pilot.v090.checklist.', ''),
+        this.settingAcknowledged(row.value),
+      ]),
+    );
+    const productionLike = this.isProductionLike();
+    const demoSeedDisabled =
+      process.env.ENABLE_DEMO_SEED?.toLowerCase() !== 'true';
+    const organizationMissing = this.organizationReadinessFields(organization)
+      .filter((field) => !field.complete)
+      .map((field) => field.label);
+    const mailConfigured = Boolean(
+      process.env.SMTP_HOST && process.env.SMTP_PORT,
+    );
+
+    const items = [
+      this.pilotChecklistItem({
+        actionLink: '/admin/deployment-readiness',
+        complete: Boolean(
+          process.env.NODE_ENV &&
+          process.env.DATABASE_URL &&
+          process.env.REDIS_URL &&
+          (process.env.APP_URL || process.env.WEB_URL),
+        ),
+        description:
+          'NODE_ENV, database, Redis, and app URL configuration are present.',
+        id: 'environmentConfigured',
+        required: true,
+        title: 'Environment configured',
+      }),
+      this.pilotChecklistItem({
+        actionLink: '/setup',
+        complete: firstAdminCount > 0,
+        description: `${firstAdminCount} active administrator account(s) found.`,
+        id: 'firstAdminCreated',
+        required: true,
+        title: 'First admin created',
+      }),
+      this.pilotChecklistItem({
+        actionLink: '/admin/organization',
+        complete: organizationMissing.length === 0,
+        description:
+          organizationMissing.length === 0
+            ? 'Organization name, slug, email, phone, address, country, and timezone are complete.'
+            : `Missing: ${organizationMissing.join(', ')}.`,
+        id: 'organizationProfileCompleted',
+        required: true,
+        title: 'Organization profile completed',
+      }),
+      this.pilotChecklistItem({
+        actionLink: '/admin/departments',
+        complete: departments > 0,
+        description: `${departments} active department(s) configured.`,
+        id: 'departmentsCreated',
+        required: true,
+        title: 'Departments created',
+      }),
+      this.pilotChecklistItem({
+        actionLink: '/admin/users',
+        complete: users > 0 && activeUsers > 0,
+        description: `${users} user(s), including ${activeUsers} active user(s), configured.`,
+        id: 'usersCreated',
+        required: true,
+        title: 'Users created',
+      }),
+      this.pilotChecklistItem({
+        actionLink: '/admin/users/onboarding',
+        complete:
+          activeRoles > 0 &&
+          activeUsers > 0 &&
+          usersWithoutRole === 0 &&
+          usersWithoutDepartment === 0,
+        description: `${usersWithoutRole} active user(s) without role; ${usersWithoutDepartment} active user(s) without department.`,
+        id: 'rolesAssigned',
+        required: true,
+        title: 'Roles assigned',
+      }),
+      this.pilotChecklistItem({
+        actionLink: '/admin/deployment-readiness',
+        complete: !productionLike || demoSeedDisabled,
+        description: productionLike
+          ? 'ENABLE_DEMO_SEED must be false in production-like pilot environments.'
+          : 'Local/development environments may keep demo seed enabled for UAT only.',
+        id: 'demoSeedDisabled',
+        required: true,
+        title: 'Demo seed disabled for production-like pilot',
+      }),
+      this.pilotChecklistItem({
+        actionLink: '/admin/deployment-readiness',
+        complete: mailConfigured || manual.get('mailSettingsVerified') === true,
+        description: mailConfigured
+          ? 'SMTP/Mailpit host and port are configured.'
+          : 'Mail settings require manual verification before pilot.',
+        id: 'mailSettingsVerified',
+        manualAcknowledgement: manual.get('mailSettingsVerified') === true,
+        required: true,
+        title: 'Mail settings verified',
+      }),
+      this.pilotChecklistItem({
+        actionLink: '/admin/backup-readiness',
+        complete: manual.get('backupTested') === true,
+        description:
+          'Run the backup helper and record evidence before the pilot goes live.',
+        id: 'backupTested',
+        manualAcknowledgement: manual.get('backupTested') === true,
+        required: true,
+        title: 'Backup tested',
+      }),
+      this.pilotChecklistItem({
+        actionLink: '/admin/backup-readiness',
+        complete: manual.get('restoreTested') === true,
+        description:
+          'Restore into a safe environment and verify health before go-live.',
+        id: 'restoreTested',
+        manualAcknowledgement: manual.get('restoreTested') === true,
+        required: true,
+        title: 'Restore tested',
+      }),
+      this.pilotChecklistItem({
+        actionLink: '/pilot/uat',
+        complete: manual.get('uatCompleted') === true,
+        description:
+          'Complete the structured UAT runner and capture pass/fail notes.',
+        id: 'uatCompleted',
+        manualAcknowledgement: manual.get('uatCompleted') === true,
+        required: true,
+        title: 'UAT completed',
+      }),
+      this.pilotChecklistItem({
+        actionLink: '/feedback',
+        complete: true,
+        description: `Feedback channel is enabled; ${feedbackCount} feedback record(s) submitted.`,
+        id: 'feedbackChannelEnabled',
+        required: true,
+        title: 'Feedback channel enabled',
+      }),
+    ];
+
+    return {
+      blockers: items.filter((item) => item.required && !item.complete),
+      complete: items.every((item) => !item.required || item.complete),
+      items,
+      requiredCount: items.filter((item) => item.required).length,
+    };
+  }
+
+  async updatePilotChecklistItem(
+    principal: AuthenticatedUser,
+    id: string,
+    input: UpdatePilotChecklistItemDto,
+    metadata: RequestMetadata,
+  ) {
+    if (!pilotChecklistManualKeys.has(id)) {
+      throw new NotFoundException(
+        'Pilot checklist item is not manually editable',
+      );
+    }
+    const value = {
+      acknowledged: input.acknowledged ?? true,
+      note: input.note ?? '',
+      updatedAt: new Date().toISOString(),
+      updatedByUserId: principal.id,
+    };
+    await this.prisma.systemSetting.upsert({
+      create: {
+        key: `pilot.v090.checklist.${id}`,
+        organizationId: principal.organizationId,
+        value,
+      },
+      update: { value },
+      where: {
+        organizationId_key: {
+          key: `pilot.v090.checklist.${id}`,
+          organizationId: principal.organizationId,
+        },
+      },
+    });
+    await this.record(principal, metadata, {
+      action: 'pilot.checklist.updated',
+      entityType: 'SystemSetting',
+      newValues: { id, ...value },
+    });
+    return this.pilotChecklist(principal);
+  }
+
+  async userOnboardingReadiness(principal: AuthenticatedUser) {
+    const users = await this.prisma.user.findMany({
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      select: userSelect,
+      where: { deletedAt: null, organizationId: principal.organizationId },
+    });
+
+    const records = users.map((user) => {
+      const checks = [
+        this.readinessCheck('Assigned department', Boolean(user.departmentId)),
+        this.readinessCheck('Assigned role', Boolean(user.roleId)),
+        this.readinessCheck('Active status', user.status === UserStatus.ACTIVE),
+        this.readinessCheck(
+          'Valid email',
+          /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email),
+        ),
+        this.readinessCheck('Has logged in', Boolean(user.lastLoginAt), false),
+      ];
+      const demoPasswordRisk =
+        user.email.endsWith('.faithos.local') || user.email.includes('@demo.');
+      return {
+        checks,
+        demoPasswordRisk,
+        ready:
+          checks
+            .filter((check) => check.required)
+            .every((check) => check.complete) && !demoPasswordRisk,
+        user,
+        warnings: [
+          demoPasswordRisk
+            ? 'Demo/default password risk is possible for seeded pilot accounts.'
+            : '',
+          !user.lastLoginAt ? 'User has not logged in yet.' : '',
+        ].filter(Boolean),
+      };
+    });
+
+    return {
+      inactiveUsers: records.filter(
+        (record) => record.user.status !== 'ACTIVE',
+      ),
+      readyUsers: records.filter((record) => record.ready).length,
+      records,
+      usersWithoutDepartment: records.filter(
+        (record) => !record.user.departmentId,
+      ),
+      usersWithoutRole: records.filter((record) => !record.user.roleId),
+    };
+  }
+
+  async permissionAudit(principal: AuthenticatedUser) {
+    const roles = await this.prisma.role.findMany({
+      include: {
+        _count: { select: { users: true } },
+        rolePermissions: { include: { permission: true } },
+      },
+      orderBy: [{ isSystem: 'desc' }, { name: 'asc' }],
+      where: {
+        active: true,
+        OR: [
+          { organizationId: principal.organizationId },
+          { isSystem: true, organizationId: null },
+        ],
+      },
+    });
+    const recommendedAdminPermissions = [
+      'admin.access',
+      'admin.users.manage',
+      'admin.roles.manage',
+      'admin.permissions.view',
+      'admin.systemSettings.manage',
+      'pilot.feedback.view',
+    ];
+
+    return {
+      roles: roles.map((role) => {
+        const permissions = role.rolePermissions.map((item) => item.permission);
+        const permissionCodes = new Set(
+          permissions.map((permission) => permission.code),
+        );
+        const sensitivePermissions = permissions.filter((permission) =>
+          sensitivePermissionTerms.some((term) =>
+            permission.code.toLowerCase().includes(term),
+          ),
+        );
+        const isAdminRole = role.name.toLowerCase().includes('admin');
+        const missingRecommendedPermissions = isAdminRole
+          ? recommendedAdminPermissions.filter(
+              (code) => !permissionCodes.has(code),
+            )
+          : [];
+        const excessivePermissionsWarning =
+          !isAdminRole && sensitivePermissions.length > 0
+            ? 'Non-admin role has sensitive permissions; review before pilot.'
+            : '';
+
+        return {
+          excessivePermissionsWarning,
+          id: role.id,
+          isSystem: role.isSystem,
+          missingRecommendedPermissions,
+          name: role.name,
+          permissions,
+          sensitivePermissions,
+          usersCount: role._count.users,
+        };
+      }),
+      sensitiveAreas: sensitivePermissionTerms,
+    };
+  }
+
+  async deploymentReadiness(principal: AuthenticatedUser) {
+    const [database, redis, smtp, firstAdminCount, organization] =
+      await Promise.all([
+        this.checkDatabase(),
+        this.checkTcpUrl(process.env.REDIS_URL),
+        this.checkTcpHost(process.env.SMTP_HOST, process.env.SMTP_PORT),
+        this.prisma.user.count({
+          where: {
+            deletedAt: null,
+            organizationId: principal.organizationId,
+            role: {
+              rolePermissions: {
+                some: { permission: { code: 'admin.access' } },
+              },
+            },
+            status: UserStatus.ACTIVE,
+          },
+        }),
+        this.organization(principal),
+      ]);
+    const productionLike = this.isProductionLike();
+    const demoSeedEnabled =
+      process.env.ENABLE_DEMO_SEED?.toLowerCase() === 'true';
+    const jwtSafe = this.jwtSecretsLookSafe();
+    const checks = [
+      this.deploymentCheck(
+        'NODE_ENV',
+        process.env.NODE_ENV ?? 'development',
+        process.env.NODE_ENV ? 'READY' : 'WARNING',
+      ),
+      this.deploymentCheck(
+        'Demo seed status',
+        demoSeedEnabled ? 'Enabled' : 'Disabled',
+        productionLike && demoSeedEnabled ? 'BLOCKED' : 'READY',
+      ),
+      this.deploymentCheck(
+        'App URL configured',
+        process.env.APP_URL || process.env.WEB_URL ? 'Configured' : 'Missing',
+        process.env.APP_URL || process.env.WEB_URL ? 'READY' : 'BLOCKED',
+      ),
+      this.deploymentCheck(
+        'Database status',
+        database.message,
+        database.healthy ? 'READY' : 'BLOCKED',
+      ),
+      this.deploymentCheck(
+        'Redis status',
+        redis.message,
+        redis.healthy ? 'READY' : 'BLOCKED',
+      ),
+      this.deploymentCheck(
+        'SMTP/Mailpit status',
+        smtp.message,
+        smtp.healthy ? 'READY' : 'WARNING',
+      ),
+      this.deploymentCheck(
+        'JWT secret safety check',
+        jwtSafe
+          ? 'JWT secrets are present and do not match known demo placeholders.'
+          : 'JWT secrets are missing or look like demo placeholders.',
+        jwtSafe ? 'READY' : 'BLOCKED',
+      ),
+      this.deploymentCheck(
+        'First admin exists',
+        `${firstAdminCount} active administrator account(s) found.`,
+        firstAdminCount > 0 ? 'READY' : 'BLOCKED',
+      ),
+      this.deploymentCheck(
+        'Organization exists',
+        organization ? 'Organization record found.' : 'Organization missing.',
+        organization ? 'READY' : 'BLOCKED',
+      ),
+      this.deploymentCheck(
+        'Swagger availability',
+        'Swagger is mounted at /api/docs; verify through the browser.',
+        'READY',
+      ),
+      this.deploymentCheck(
+        'UAT availability',
+        'UAT dashboard and report are available at /uat and /uat/report.',
+        'READY',
+      ),
+    ];
+
+    return {
+      checks,
+      overallStatus: checks.some((check) => check.status === 'BLOCKED')
+        ? 'BLOCKED'
+        : checks.some((check) => check.status === 'WARNING')
+          ? 'WARNING'
+          : 'READY',
+    };
+  }
+
+  async backupReadiness(principal: AuthenticatedUser) {
+    const checklist = await this.pilotChecklist(principal);
+    const backup = checklist.items.find((item) => item.id === 'backupTested');
+    const restore = checklist.items.find((item) => item.id === 'restoreTested');
+
+    return {
+      backupDocumentationLink: '/admin/backup-runbook',
+      backupScriptAvailable: true,
+      lastBackupTestStatus: backup?.complete ? 'READY' : 'BLOCKED',
+      lastRestoreTestStatus: restore?.complete ? 'READY' : 'BLOCKED',
+      restoreDocumentationLink: '/admin/backup-runbook',
+      restoreScriptAvailable: true,
+      warning:
+        'Pilot operators must verify backup and restore in a safe environment before go-live. Web-triggered backup execution is intentionally not implemented.',
+    };
+  }
+
   async systemHealth() {
     const [database, redis, mailpit] = await Promise.all([
       this.checkDatabase(),
@@ -1432,6 +1921,12 @@ export class AdminService {
   }
 
   feedback(principal: AuthenticatedUser, query: PilotFeedbackQueryDto) {
+    const type =
+      query.type ??
+      (query.category ? this.feedbackType(query.category) : undefined);
+    const priority =
+      query.priority ??
+      (query.severity ? this.feedbackPriority(query.severity) : undefined);
     return this.prisma.pilotFeedback.findMany({
       include: {
         submitter: {
@@ -1441,9 +1936,9 @@ export class AdminService {
       orderBy: { createdAt: 'desc' },
       where: {
         organizationId: principal.organizationId,
-        ...(query.priority ? { priority: query.priority } : {}),
+        ...(priority ? { priority } : {}),
         ...(query.status ? { status: query.status } : {}),
-        ...(query.type ? { type: query.type } : {}),
+        ...(type ? { type } : {}),
       },
     });
   }
@@ -1704,6 +2199,92 @@ export class AdminService {
       owner,
       status: complete ? 'Complete' : 'Needs review',
     };
+  }
+
+  private pilotChecklistItem(input: {
+    actionLink: string;
+    complete: boolean;
+    description: string;
+    id: string;
+    manualAcknowledgement?: boolean;
+    required: boolean;
+    title: string;
+  }) {
+    return {
+      actionLink: input.actionLink,
+      complete: input.complete,
+      description: input.description,
+      id: input.id,
+      manualAcknowledgement: input.manualAcknowledgement ?? false,
+      required: input.required,
+      status: input.complete
+        ? 'COMPLETE'
+        : input.required
+          ? 'BLOCKED'
+          : 'WARNING',
+      title: input.title,
+    };
+  }
+
+  private settingAcknowledged(value: Prisma.JsonValue): boolean {
+    if (typeof value === 'boolean') return value;
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return (value as { acknowledged?: unknown }).acknowledged === true;
+    }
+    return false;
+  }
+
+  private readinessCheck(label: string, complete: boolean, required = true) {
+    return {
+      complete,
+      label,
+      required,
+      status: complete ? 'READY' : required ? 'BLOCKED' : 'WARNING',
+    };
+  }
+
+  private organizationReadinessFields(organization: {
+    address?: string | null;
+    country?: string | null;
+    email?: string | null;
+    name?: string | null;
+    phone?: string | null;
+    slug?: string | null;
+    timezone?: string | null;
+  }) {
+    return [
+      ['name', 'Name', organization.name],
+      ['slug', 'Slug', organization.slug],
+      ['email', 'Email', organization.email],
+      ['phone', 'Phone', organization.phone],
+      ['address', 'Address', organization.address],
+      ['country', 'Country', organization.country],
+      ['timezone', 'Timezone', organization.timezone],
+    ].map(([key, label, value]) => ({
+      complete: Boolean(value),
+      key,
+      label,
+    }));
+  }
+
+  private deploymentCheck(
+    label: string,
+    message: string,
+    status: ReadinessStatus,
+  ) {
+    return { label, message, status };
+  }
+
+  private isProductionLike(): boolean {
+    return ['production', 'staging', 'pilot'].includes(
+      (process.env.NODE_ENV ?? 'development').toLowerCase(),
+    );
+  }
+
+  private jwtSecretsLookSafe(): boolean {
+    const values = [process.env.JWT_SECRET, process.env.JWT_REFRESH_SECRET];
+    const unsafe = /demo|replace-with|development|FaithOS-Demo/i;
+    return values.every((value) => Boolean(value && !unsafe.test(value)));
   }
 
   private async ensureFeedback(organizationId: string, id: string) {

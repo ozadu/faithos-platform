@@ -50,6 +50,11 @@ const adminLinks = [
     'Bulk onboarding with preview, validation, and duplicate skipping',
   ],
   [
+    '/admin/users/onboarding',
+    'User Onboarding Readiness',
+    'Pilot account readiness by role, department, status, email, and login',
+  ],
+  [
     '/admin/roles',
     'Roles',
     'Permission groups used to control what staff can access',
@@ -73,9 +78,34 @@ const adminLinks = [
   ['/admin/audit-log', 'Audit Log', 'Administrative activity trail'],
   ['/admin/pilot-readiness', 'Pilot Readiness', 'Pilot launch checklist'],
   [
+    '/pilot/checklist',
+    'Pilot Setup Checklist',
+    'v0.9.0 required pilot setup and manual acknowledgements',
+  ],
+  [
+    '/pilot/uat',
+    'Pilot UAT Runner',
+    'Structured pass/fail test flows for pilot validation',
+  ],
+  [
+    '/admin/permission-audit',
+    'Permission Audit',
+    'Sensitive permission and role readiness review',
+  ],
+  [
     '/admin/production-readiness',
     'Production Readiness',
     'Safe go-live checklist with no secret exposure',
+  ],
+  [
+    '/admin/deployment-readiness',
+    'Deployment Readiness',
+    'Environment, services, first admin, Swagger, and UAT checks',
+  ],
+  [
+    '/admin/backup-readiness',
+    'Backup Readiness',
+    'Documentation-backed backup and restore dry-run verification',
   ],
   [
     '/admin/backup-restore',
@@ -250,11 +280,36 @@ export function AdminOrganizationPage() {
     >
       <p>{message}</p>
       {organization ? (
+        <section className="panel stack">
+          <h2>Pilot profile readiness</h2>
+          <p>
+            Slug: <code>{organization.slug}</code>
+          </p>
+          <div className="cards">
+            {[
+              ['Name', organization.name],
+              ['Slug', organization.slug],
+              ['Email', organization.email],
+              ['Phone', organization.phone],
+              ['Address', organization.address],
+              ['Country', organization.country],
+              ['Timezone', organization.timezone],
+            ].map(([label, value]) => (
+              <article className="card metric" key={label}>
+                <span>{label}</span>
+                <strong>{value ? 'Ready' : 'Missing'}</strong>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+      {organization ? (
         <form className="panel form-grid" onSubmit={save}>
           {[
             ['name', 'Organization name'],
             ['shortName', 'Short name'],
             ['address', 'Address'],
+            ['country', 'Country'],
             ['email', 'Email'],
             ['phone', 'Phone'],
             ['website', 'Website'],
