@@ -1,0 +1,8 @@
+No,Full Name,Department / Office,FaithOS Role,Key Permissions Needed,Sensitive Access,Approved By,Notes
+1,,DCC Secretary / Admin Office,Document Creator / Admin Operator,"Create documents; route documents; view inbox/sent; review feedback if assigned",Yes/No,,
+2,,Accountant,Finance Reviewer,"Receive documents; review payment requests; forward/return; view finance reports if approved",Yes/No,,
+3,,Auditor,Audit Reviewer,"Receive documents; review audit/payment documents; forward/return",Yes/No,,
+4,,Cashier,Finance Staff,"Submit supporting documents; view assigned documents",Yes/No,,
+5,,DCC Chairman / Executive Office,Executive Approver,"Approve/reject final workflow tasks; view dashboard/reports if approved",Yes/No,,
+6,,Technical Installer,System Administrator,"Setup; users; roles; permissions; system readiness; troubleshooting",Yes,,
+
